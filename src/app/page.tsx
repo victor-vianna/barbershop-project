@@ -1,53 +1,60 @@
-import Link from "next/link";
+import { Calendar, Clock, Scissors } from "lucide-react";
 
-import { LatestPost } from "~/app/_components/post";
-import { api, HydrateClient } from "~/trpc/server";
-
-export default async function Home() {
-  // const hello = await api.post.hello({ text: "from tRPC" });
-
-  // void api.post.getLatest.prefetch();
-
+const BarberHomePage = () => {
   return (
-    // <HydrateClient>
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
-      <div className="container flex flex-col items-center justify-center gap-12 px-4 py-16">
-        <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem]">
-          Create <span className="text-[hsl(280,100%,70%)]">T3</span> App
-        </h1>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-8">
-          <Link
-            className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 hover:bg-white/20"
-            href="https://create.t3.gg/en/usage/first-steps"
-            target="_blank"
-          >
-            <h3 className="text-2xl font-bold">First Steps →</h3>
-            <div className="text-lg">
-              Just the basics - Everything you need to know to set up your
-              database and authentication.
-            </div>
-          </Link>
-          <Link
-            className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 hover:bg-white/20"
-            href="https://create.t3.gg/en/introduction"
-            target="_blank"
-          >
-            <h3 className="text-2xl font-bold">Documentation →</h3>
-            <div className="text-lg">
-              Learn more about Create T3 App, the libraries it uses, and how to
-              deploy it.
-            </div>
-          </Link>
-        </div>
-        <div className="flex flex-col items-center gap-2">
-          <p className="text-2xl text-white">
-            {/* {hello ? hello.greeting : "Loading tRPC query..."} */}
+    <main className="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800 text-white">
+      <div className="container mx-auto px-4 py-16">
+        {/* Cabeçalho com logo e título */}
+        <div className="mb-12 text-center">
+          <h1 className="mb-2 text-4xl font-black tracking-tight md:text-6xl">
+            <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+              IGOR BARBER
+            </span>
+          </h1>
+          <p className="text-xl font-light text-zinc-300 md:text-2xl">
+            A MELHOR BARBEARIA PARA RENOVAR SEU ESTILO
           </p>
         </div>
 
-        {/* <LatestPost /> */}
+        {/* Sessão de destaque com serviços */}
+        <div className="grid gap-8 md:grid-cols-3">
+          <div className="rounded-xl bg-zinc-800 p-6 shadow-lg transition-transform hover:scale-105">
+            <Calendar className="mx-auto mb-4 text-purple-500" size={48} />
+            <h2 className="mb-2 text-center text-xl font-bold">Agende Agora</h2>
+            <p className="text-center text-zinc-300">
+              Escolha seu horário com facilidade e rapidez
+            </p>
+          </div>
+          <div className="rounded-xl bg-zinc-800 p-6 shadow-lg transition-transform hover:scale-105">
+            <Scissors className="mx-auto mb-4 text-pink-500" size={48} />
+            <h2 className="mb-2 text-center text-xl font-bold">
+              Cortes Modernos
+            </h2>
+            <p className="text-center text-zinc-300">
+              Profissionais especializados nos últimos estilos e cortes
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-zinc-800 p-6 shadow-lg transition-transform hover:scale-105">
+            <Clock className="mx-auto mb-4 text-cyan-500" size={48} />
+            <h2 className="mb-2 text-center text-xl font-bold">
+              Tempo Garantido
+            </h2>
+            <p className="text-center text-zinc-300">
+              Atendimento rápido e pontual
+            </p>
+          </div>
+        </div>
+
+        {/* Botão de agendamento */}
+        <div className="mt-12 text-center">
+          <button className="rounded-full bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-3 font-bold text-white shadow-lg transition-all hover:from-purple-700 hover:to-pink-700 hover:shadow-xl">
+            Agendar Horário
+          </button>
+        </div>
       </div>
     </main>
-    // </HydrateClient>
   );
-}
+};
+
+export default BarberHomePage;
