@@ -1,6 +1,10 @@
+"use client";
+
 import { Calendar, Clock, Scissors } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const BarberHomePage = () => {
+  const router = useRouter();
   return (
     <main className="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800 text-white">
       <div className="container mx-auto px-4 py-16">
@@ -48,7 +52,10 @@ const BarberHomePage = () => {
 
         {/* Botão de agendamento */}
         <div className="mt-12 text-center">
-          <button className="rounded-full bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-3 font-bold text-white shadow-lg transition-all hover:from-purple-700 hover:to-pink-700 hover:shadow-xl">
+          <button
+            onClick={() => router.push("/sign-in")}
+            className="rounded-full bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-3 font-bold text-white shadow-lg transition-all hover:from-purple-700 hover:to-pink-700 hover:shadow-xl"
+          >
             Agendar Horário
           </button>
         </div>

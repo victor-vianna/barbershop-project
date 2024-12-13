@@ -1,6 +1,11 @@
-import Image from "next/image";
+"use client";
 
-const barberSelection = () => {
+import { CircleArrowLeft } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+
+const BarberSelection = () => {
+  const router = useRouter();
   const barbers = [
     {
       name: "Igor",
@@ -12,13 +17,13 @@ const barberSelection = () => {
       name: "Jhélita",
       especiality: "Cortes Modernos",
       description: "Profissional detalhista e eficiente",
-      image: "/images/barber.jpg",
+      image: "/images/barber-jhelita.jpeg",
     },
     {
-      name: "Cleitin",
+      name: "Eliel",
       especiality: "Cortes afro e Barba",
       description: "Especialização em modelagem de barba",
-      image: "/images/barber.jpg",
+      image: "/images/barber-eliel.jpeg",
     },
   ];
 
@@ -38,7 +43,7 @@ const barberSelection = () => {
               className="w-1/3 overflow-hidden rounded-xl bg-zinc-800 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl"
             >
               {/* Imagem Vertical */}
-              <div className="h-[500px] w-full">
+              <div className="h-[650px] w-full">
                 <Image
                   src={barber.image}
                   alt={barber.name}
@@ -65,9 +70,15 @@ const barberSelection = () => {
             </div>
           ))}
         </div>
+        <button
+          onClick={() => router.push("/escolha-agendamento")}
+          className="p-7"
+        >
+          <CircleArrowLeft size={48} />
+        </button>
       </div>
     </main>
   );
 };
 
-export default barberSelection;
+export default BarberSelection;
