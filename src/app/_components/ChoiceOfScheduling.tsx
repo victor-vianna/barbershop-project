@@ -3,9 +3,17 @@
 import { Clock, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Calendar from "./Calendar";
+import { useState } from "react";
 
 const ChoiceOfScheduling = () => {
   const router = useRouter();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [showCalendar, setShowCalendar] = useState(false);
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+    setShowCalendar(false);
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800 text-white">
@@ -28,9 +36,7 @@ const ChoiceOfScheduling = () => {
                 Encontre o próximo horário disponível na barbearia
               </p>
               <button
-                onClick={() => {
-                  <Calendar />;
-                }}
+                onClick={() => setShowCalendar(!showCalendar)}
                 className="w-full rounded-full bg-gradient-to-r from-purple-600 to-pink-600 py-3 font-bold text-white transition-all hover:from-purple-700 hover:to-pink-700"
               >
                 Buscar Horários
@@ -57,6 +63,19 @@ const ChoiceOfScheduling = () => {
             </div>
           </div>
         </div>
+
+        {/* Renderização condicional do Calendário */}
+        {showCalendar && (
+          <div className="mt-8 flex justify-center">
+            <div className="rounded-full font-bold text-pink-600">
+              <Calendar
+                onDateSelect={(date) => {
+                  handleDateSelect(date);
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
