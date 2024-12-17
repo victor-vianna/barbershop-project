@@ -12,7 +12,7 @@ const isSameDate = (date1: string, date2: string): boolean => {
 
 const Calendar: React.FC<CalendarProps> = ({ onDateSelect }) => {
   const [daysOfWeek, setDaysOfWeek] = useState<
-    { dayOfWeek: string; date: string }[]
+    { dayOfWeek: string; date: string; fullDate: string }[]
   >([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
@@ -23,18 +23,19 @@ const Calendar: React.FC<CalendarProps> = ({ onDateSelect }) => {
   }, []);
 
   const handleDateClick = (date: Date) => {
+    console.log("data selecionada:", date);
     setSelectedDate(date);
     onDateSelect(date);
   };
 
-  const scrollCalendar = (direction: "left" | "right") => {
-    if (calendarRef.current) {
-      calendarRef.current.scrollBy({
-        left: direction === "left" ? -100 : 100,
-        behavior: "smooth",
-      });
-    }
-  };
+  // const scrollCalendar = (direction: "left" | "right") => {
+  //   if (calendarRef.current) {
+  //     calendarRef.current.scrollBy({
+  //       left: direction === "left" ? -100 : 100,
+  //       behavior: "smooth",
+  //     });
+  //   }
+  // };
 
   return (
     <div className="rounded-lg bg-slate-900 p-4 shadow-md">
@@ -53,7 +54,7 @@ const Calendar: React.FC<CalendarProps> = ({ onDateSelect }) => {
                 ? "scale-105 bg-blue-500 text-white shadow-lg"
                 : "bg-gray200 hover:scale-105 hover:bg-gray-300"
             }`}
-            onClick={() => handleDateClick(new Date(day.date))}
+            onClick={() => handleDateClick(new Date(day.fullDate))}
           >
             <span className="block font-semibold">{day.dayOfWeek} </span>
             <span className="block">{day.date}</span>

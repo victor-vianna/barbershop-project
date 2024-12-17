@@ -4,17 +4,37 @@ import { Clock, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Calendar from "./Calendar";
 import { useState } from "react";
+import { isWorkingDay } from "../utils/calendar";
+import { toast } from "~/hooks/use-toast";
 
 const ChoiceOfScheduling = () => {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showTimeModal, setShowTimeModal] = useState(false);
 
-  const handleDateSelect = (date: Date) => {
-    setSelectedDate(date);
-    setShowCalendar(false);
+  const handleDateSelect = (selectedDate: string | Date) => {
+    let date: Date;
+
+    // Se selectedDate for uma string, converta para Date
+    if (typeof selectedDate === "string") {
+      date = new Date(selectedDate); // Caso seja string
+    } else {
+      date = selectedDate; // Caso já seja um Date
+    }
+
+    if (!isNaN(date.getTime()) && isWorkingDay(date)) {
+      setSelectedDate(date);
+      setShowCalendar(false);
+      setShowTimeModal(true);
+    } else {
+      toast({
+        title: "Desculpe, houve um erro",
+        description:
+          "Este não é um dia de trabalho do barbeiro. Escolha outro dia. ",
+      });
+    }
   };
-
   return (
     <main className="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800 text-white">
       <div className="container mx-auto px-4 py-16">

@@ -11,6 +11,7 @@ import {
   SignInButton,
   UserButton,
 } from "@clerk/nextjs";
+import { Toaster } from "~/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "Create T3 App",
@@ -34,6 +35,7 @@ export default function RootLayout({
             </SignedIn>
           </header>
           <TRPCReactProvider>{children}</TRPCReactProvider>
+          <Toaster />
         </body>
       </html>
     </ClerkProvider>
