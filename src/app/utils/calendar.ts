@@ -25,7 +25,7 @@ export function getDaysOfWeek(): {
 
 // Função que mostra os dias de trabalho do barbeiro
 export function getBarberWorkingDays(): string[] {
-  return ["qua.", "qui.", "sex.", "sáb."];
+  return ["ter.", "qua.", "qui.", "sex.", "sáb."];
 }
 
 // Função para validar uma data selecionada para um cliente sobre ser um dia válido
@@ -35,6 +35,6 @@ export function isWorkingDay(date: Date): boolean {
   }
 
   const dayOfWeek = date.toLocaleDateString("pt-BR", { weekday: "short" });
-  const workingDays = ["qua.", "qui.", "sex.", "sáb."];
+  const workingDays = getBarberWorkingDays();
   return workingDays.includes(dayOfWeek);
 }

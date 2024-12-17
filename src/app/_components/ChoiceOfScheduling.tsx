@@ -6,6 +6,7 @@ import Calendar from "./Calendar";
 import { useState } from "react";
 import { isWorkingDay } from "../utils/calendar";
 import { toast } from "~/hooks/use-toast";
+import TimeModal from "./TimeModal";
 
 const ChoiceOfScheduling = () => {
   const router = useRouter();
@@ -34,6 +35,13 @@ const ChoiceOfScheduling = () => {
           "Este não é um dia de trabalho do barbeiro. Escolha outro dia. ",
       });
     }
+  };
+
+  const handleConfirmTime = (time: string) => {
+    console.log(
+      `Agendamento confirmado para ${selectedDate.toLocaleString("pt-BR")} às ${time}`,
+    );
+    setShowTimeModal(false);
   };
   return (
     <main className="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800 text-white">
@@ -95,6 +103,15 @@ const ChoiceOfScheduling = () => {
               />
             </div>
           </div>
+        )}
+
+        {/* Renderização condicional do Modal de horários */}
+        {showTimeModal && (
+          <TimeModal
+            date={selectedDate}
+            onConfirm={handleConfirmTime}
+            onClose={() => setShowTimeModal(false)}
+          />
         )}
       </div>
     </main>
