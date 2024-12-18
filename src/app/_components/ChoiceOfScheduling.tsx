@@ -11,8 +11,8 @@ import TimeModal from "./TimeModal";
 const ChoiceOfScheduling = () => {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [showTimeModal, setShowTimeModal] = useState(false);
+  // const [showCalendar, setShowCalendar] = useState(false);
+  // const [showTimeModal, setShowTimeModal] = useState(false);
 
   const handleDateSelect = (selectedDate: string | Date) => {
     let date: Date;
@@ -26,8 +26,8 @@ const ChoiceOfScheduling = () => {
 
     if (!isNaN(date.getTime()) && isWorkingDay(date)) {
       setSelectedDate(date);
-      setShowCalendar(false);
-      setShowTimeModal(true);
+      // setShowCalendar(false);
+      // setShowTimeModal(true);
     } else {
       toast({
         title: "Desculpe, houve um erro",
@@ -37,12 +37,12 @@ const ChoiceOfScheduling = () => {
     }
   };
 
-  const handleConfirmTime = (time: string) => {
-    console.log(
-      `Agendamento confirmado para ${selectedDate.toLocaleString("pt-BR")} às ${time}`,
-    );
-    setShowTimeModal(false);
-  };
+  // const handleConfirmTime = (time: string) => {
+  //   console.log(
+  //     `Agendamento confirmado para ${selectedDate.toLocaleString("pt-BR")} às ${time}`,
+  //   );
+  //   setShowTimeModal(false);
+  // };
   return (
     <main className="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800 text-white">
       <div className="container mx-auto px-4 py-16">
@@ -64,7 +64,7 @@ const ChoiceOfScheduling = () => {
                 Encontre o próximo horário disponível na barbearia
               </p>
               <button
-                onClick={() => setShowCalendar(!showCalendar)}
+                onClick={() => router.push("/buscar-horario")}
                 className="w-full rounded-full bg-gradient-to-r from-purple-600 to-pink-600 py-3 font-bold text-white transition-all hover:from-purple-700 hover:to-pink-700"
               >
                 Buscar Horários
@@ -92,7 +92,7 @@ const ChoiceOfScheduling = () => {
           </div>
         </div>
 
-        {/* Renderização condicional do Calendário */}
+        {/* Renderização condicional do Calendário
         {showCalendar && (
           <div className="mt-8 flex justify-center">
             <div className="rounded-full font-bold text-pink-600">
@@ -106,13 +106,13 @@ const ChoiceOfScheduling = () => {
         )}
 
         {/* Renderização condicional do Modal de horários */}
-        {showTimeModal && (
+        {/* {showTimeModal && (
           <TimeModal
             date={selectedDate}
             onConfirm={handleConfirmTime}
             onClose={() => setShowTimeModal(false)}
           />
-        )}
+        )}  */}
       </div>
     </main>
   );
