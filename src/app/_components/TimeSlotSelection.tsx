@@ -7,7 +7,6 @@ import { useState } from "react";
 import { toast } from "~/hooks/use-toast";
 
 interface Barbeiro {
-  id: string;
   name: string;
   especiality: string;
   description: string;
@@ -29,7 +28,6 @@ const TimeSlotSelection: React.FC<TimeSlotSelectionProps> = ({
   // Mock de dados de barbeiros (SUBSTITUIUR BACKEND)
   const barbeiros: Barbeiro[] = [
     {
-      id: "1",
       name: "Igor",
       especiality: "Cortes Clássicos",
       description: "Profissional experiente e qualificado",
@@ -50,7 +48,6 @@ const TimeSlotSelection: React.FC<TimeSlotSelectionProps> = ({
       ],
     },
     {
-      id: "2",
       name: "Jhélita",
       especiality: "Cortes Modernos",
       description: "Profissional detalhista e eficiente",
@@ -71,7 +68,6 @@ const TimeSlotSelection: React.FC<TimeSlotSelectionProps> = ({
       ],
     },
     {
-      id: "3",
       name: "Eliel",
       especiality: "Cortes afro e Barba",
       description: "Especialização em modelagem de barba",
@@ -110,7 +106,7 @@ const TimeSlotSelection: React.FC<TimeSlotSelectionProps> = ({
   const handleConfirmAppointment = () => {
     if (!selectedBarbeiro || !selectedHorario) {
       toast({
-        title: "Seleção Incomplerta",
+        title: "Seleção Incompleta",
         description: "Selecione um barbeiro e um horário.",
         variant: "destructive",
       });
@@ -121,7 +117,7 @@ const TimeSlotSelection: React.FC<TimeSlotSelectionProps> = ({
 
     toast({
       title: "Agendamento confirmado!",
-      description: `Agendado com ${selectedBarbeiro?.name} em ${date.toLocaleDateString()} às ${selectedHorario}`,
+      description: `Agendado com ${selectedBarbeiro?.name} em ${date.toLocaleDateString("pt-BR")} às ${selectedHorario}`,
     });
   };
 
@@ -129,7 +125,7 @@ const TimeSlotSelection: React.FC<TimeSlotSelectionProps> = ({
     <main className="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800 text-white">
       <div className="container mx-auto px-4 py-16">
         <h1 className="mb-12 bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-center text-4xl font-black text-transparent md:text-5xl">
-          Escolha seu barbeiro para {date.toLocaleDateString()}
+          Escolha seu barbeiro para {date.toLocaleDateString("pt-BR")}
         </h1>
 
         {/* Container de barbeiros */}

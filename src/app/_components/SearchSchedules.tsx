@@ -34,7 +34,7 @@ const SearchSchedules = () => {
     <main className="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800 text-white">
       <div className="container mx-auto px-4 py-16">
         <h1 className="mb-16 bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-center text-4xl font-black text-transparent md:text-5xl">
-          Escolha sua data
+          Escolha a melhor data
         </h1>
 
         <div className="flex justify-center">
