@@ -194,13 +194,16 @@ const BarberSelection: React.FC<BarberSelectionProps> = ({
             </div>
           </div>
         )}
-
-        <button
+        
+        <div className="py-5">
+          <button
           onClick={() => router.push("/escolha-agendamento")}
           className="text=white p-4 transition-colors hover:text-purple-400"
         >
           <CircleArrowLeft size={48} />
-        </button>
+          </button> 
+        </div>
+
       </div>
     </main>
   );

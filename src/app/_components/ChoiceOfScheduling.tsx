@@ -48,7 +48,7 @@ const ChoiceOfScheduling = () => {
       <div className="container mx-auto px-4 py-16">
         {/* Título */}
         <h1 className="mb-16 bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-center text-4xl font-black text-transparent md:text-5xl">
-          Como Deseja Agendar?
+          {/* Como Deseja Agendar? */}
         </h1>
 
         {/* Container de escolha de agendamento */}
@@ -73,7 +73,7 @@ const ChoiceOfScheduling = () => {
           </div>
 
           {/* Modo 2: Escolher Barbeiro */}
-          <div className="w-1/3 overflow-hidden rounded-xl bg-zinc-800 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl">
+          {/* <div className="w-1/3 overflow-hidden rounded-xl bg-zinc-800 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl">
             <div className="p-10 text-center">
               <UserCheck className="mx-auto mb-6 text-cyan-500" size={64} />
               <h2 className="mb-4 text-2xl font-bold text-cyan-400">
@@ -89,7 +89,7 @@ const ChoiceOfScheduling = () => {
                 Selecionar Barbeiro
               </button>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Renderização condicional do Calendário

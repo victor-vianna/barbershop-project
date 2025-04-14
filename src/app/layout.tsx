@@ -26,7 +26,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className={`${GeistSans.variable}`}>
         <body>
-          <header className="flex justify-end bg-gradient-to-b from-[#6432a9] to-[#32356d] p-4 text-white">
+          <header className="flex justify-end bg-gradient-to-b from-[#6432a9] to-black p-4 text-white">
             <SignedOut>
               <SignInButton />
             </SignedOut>
