@@ -8,6 +8,8 @@ import {
   pgTableCreator,
   timestamp,
   varchar,
+  date,
+  time,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -17,6 +19,21 @@ import {
  * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
  */
 export const createTable = pgTableCreator((name) => `barbershop-project_${name}`);
+
+ // tabela de agendamentos
+ export const appointments = createTable("appointment", {
+  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+  client_name: varchar("client_name", { length: 255 }).notNull(),
+  service: varchar("service", { length: 255 }).notNull(),
+  date: date("date").notNull(),
+  time: time("time").notNull(),
+  status: varchar("status", { length: 50 }).default("pendente").notNull(),
+  barber_id: varchar("barber_id").notNull(),
+  created_at: timestamp("created_at", { withTimezone: true })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull()
+ })
+
 
 export const posts = createTable(
   "post",

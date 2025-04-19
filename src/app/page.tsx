@@ -56,7 +56,7 @@ const BarberHomePage = () => {
             onClick={() => router.push("/sign-in")}
             className="rounded-full bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-3 font-bold text-white shadow-lg transition-all hover:from-purple-700 hover:to-pink-700 hover:shadow-xl"
           >
-            Agendar Horário
+            Agendar Serviço
           </button>
         </div>
       </div>

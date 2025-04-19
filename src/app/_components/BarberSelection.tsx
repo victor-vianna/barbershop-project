@@ -1,211 +1,280 @@
-"use client";
+"use client"
 
-import { CircleArrowLeft } from "lucide-react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import React, { useState } from "react";
+import { Calendar } from "~/components/ui/calendar";
+import { ptBR } from "date-fns/locale";
+import { addDays, format, isAfter, isBefore, isToday, startOfDay } from "date-fns";
 import { toast } from "~/hooks/use-toast";
-import { isWorkingDay } from "../utils/calendar";
-import Calendar from "./Calendar";
-import TimeSlotSelection from "./TimeSlotSelection";
-
-interface Barbeiro {
-  name: string;
-  especiality: string;
-  description: string;
-  image: string;
-  horariosDisponiveis: string[];
-}
+import DaySelector from "./DaySelector";
 
 interface BarberSelectionProps {
-  date: Date;
-  onCancel: () => void;
+  onClose: () => void;
+  onConfirm: (barberId: string, date: Date, time: string) => void;
+  setClientName: (name: string) => void;
+  setPhoneNumber: (phone: string) => void;
 }
 
 const BarberSelection: React.FC<BarberSelectionProps> = ({
-  date,
-  onCancel,
+  onClose,
+  onConfirm,
+  setClientName,
+  setPhoneNumber,
 }) => {
-  const router = useRouter();
-  const barbeiros: Barbeiro[] = [
-    {
-      name: "Igor",
-      especiality: "Cortes Clássicos",
-      description: "Profissional experiente e qualificado",
-      image: "/images/barber-igor.jpg",
-      horariosDisponiveis: [
-        "08:00",
-        "09:00",
-        "10:00",
-        "11:00",
-        "13:00",
-        "14:00",
-        "15:00",
-        "16:00",
-        "17:00",
-        "18:00",
-        "19:00",
-        "20:00",
-      ],
-    },
-    {
-      name: "Jhélita",
-      especiality: "Cortes Modernos",
-      description: "Profissional detalhista e eficiente",
-      image: "/images/barber-jhelita.jpeg",
-      horariosDisponiveis: [
-        "08:00",
-        "09:00",
-        "10:00",
-        "11:00",
-        "13:00",
-        "14:00",
-        "15:00",
-        "16:00",
-        "17:00",
-        "18:00",
-        "19:00",
-        "20:00",
-      ],
-    },
-    {
-      name: "Eliel",
-      especiality: "Cortes afro e Barba",
-      description: "Especialização em modelagem de barba",
-      image: "/images/barber-eliel.jpeg",
-      horariosDisponiveis: [
-        "08:00",
-        "09:00",
-        "10:00",
-        "11:00",
-        "13:00",
-        "14:00",
-        "15:00",
-        "16:00",
-        "17:00",
-        "18:00",
-        "19:00",
-        "20:00",
-      ],
-    },
+  const [step, setStep] = useState<"barber" | "date" | "time" | "info">("barber");
+  const [selectedBarberId, setSelectedBarberId] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+
+  const barbers = [
+    { id: "1", name: "Igor", image: "/images/barber-igor.jpg" },
+    { id: "2", name: "Jhélita", image: "/images/barber-jhelita.jpeg" },
+    { id: "3", name: "Eliel", image: "/images/barber-eliel.jpeg" },
   ];
 
-  const [selectedBarbeiro, setSelectedBarbeiro] = useState<Barbeiro | null>(
-    null,
-  );
-  const [selectedHorario, setSelectedHorario] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [showTimeSlots, setShowTimeSlots] = useState(false);
+  // Horários disponíveis (poderiam vir da API futuramente)
+  const availableTimes = [
+    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+    "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"
+  ];
 
-  const handleBarbeiroSelect = (barbeiros: Barbeiro) => {
-    setSelectedBarbeiro(barbeiros);
-    setSelectedHorario(null);
+  // Função para formatar o telefone automaticamente
+  const formatPhone = (value: string) => {
+    if (!value) return value;
+    
+    // Remove todos os caracteres não numéricos
+    const phoneNumber = value.replace(/\D/g, '');
+    
+    // Aplica a formatação (00) 00000-0000
+    if (phoneNumber.length <= 11) {
+      let formatted = phoneNumber;
+      if (phoneNumber.length > 2) {
+        formatted = `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2)}`;
+      }
+      if (phoneNumber.length > 7) {
+        formatted = `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 7)}-${phoneNumber.slice(7, 11)}`;
+      }
+      return formatted;
+    }
+    
+    return value;
   };
 
-  const handleHorarioSelect = (horario: string) => {
-    setSelectedHorario(horario);
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedPhone = formatPhone(e.target.value);
+    setPhone(formattedPhone);
   };
 
-  const handleDateSelect = (date: string | Date) => {
-    const selectedDate = typeof date === "string" ? new Date(date) : date;
-
-    if (!isNaN(selectedDate.getTime()) && isWorkingDay(selectedDate)) {
-      setSelectedDate(selectedDate);
-      setShowTimeSlots(true);
+  const handleNext = () => {
+    if (step === "barber") {
+      if (!selectedBarberId) {
+        toast({
+          title: "Selecione um barbeiro",
+          description: "Por favor, escolha um barbeiro para continuar.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setStep("date");
+    } else if (step === "date") {
+      if (!selectedDate) {
+        toast({
+          title: "Selecione uma data",
+          description: "Por favor, escolha uma data para continuar.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setStep("time");
+    } else if (step === "time") {
+      if (!selectedTime) {
+        toast({
+          title: "Selecione um horário",
+          description: "Por favor, escolha um horário para continuar.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setStep("info");
+    } else if (step === "info") {
+      if (!name.trim()) {
+        toast({
+          title: "Nome obrigatório",
+          description: "Por favor, informe seu nome para continuar.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validar formato do telefone
+      const phoneRegex = /^\(\d{2}\)\s\d{5}-\d{4}$/;
+      if (!phoneRegex.test(phone)) {
+        toast({
+          title: "Telefone inválido",
+          description: "Por favor, informe um número de telefone válido no formato (00) 00000-0000.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Atualizar os estados no componente pai
+      setClientName(name);
+      setPhoneNumber(phone);
+      
+      // Confirmar a seleção
+      if (selectedBarberId && selectedDate && selectedTime) {
+        onConfirm(selectedBarberId, selectedDate, selectedTime);
+      }
     }
   };
 
-  const handleCancelTimeSlots = () => {
-    setShowTimeSlots(false);
-    setSelectedDate(null);
+  const handleBack = () => {
+    if (step === "date") setStep("barber");
+    else if (step === "time") setStep("date");
+    else if (step === "info") setStep("time");
   };
 
-  const handleConfirmAppointment = () => {
-    if (!selectedBarbeiro || !selectedHorario) {
-      toast({
-        title: "Seleção Incompleta",
-        description: "Selecione um barbeiro e um horário",
-        variant: "destructive",
-      });
-    }
-
-    // chamada ao BACK END aqui
-
-    toast({
-      title: "Agendamento confirmado!",
-      description: `Agendado com ${BarberSelection.name} em ${date.toLocaleDateString("pt-BR")} às ${selectedHorario}`,
-    });
+  // Função para desativar datas passadas e fins de semana
+  const disabledDays = (date: Date) => {
+    const today = startOfDay(new Date());
+    const maxDate = addDays(today, 30); // Permite agendamentos até 30 dias no futuro
+    
+    return (
+      isBefore(date, today) || // Desativa datas no passado
+      isAfter(date, maxDate) || // Desativa datas muito distantes
+      date.getDay() === 0 // Desativa domingos (0 = domingo)
+    );
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800 text-white">
-      <div className="container mx-auto px-4 py-16">
-        {/* Título */}
-        <h1 className="mb-12 bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-center text-4xl font-black text-transparent md:text-5xl">
-          Escolha seu barbeiro
-        </h1>
-
-        {/* Container de Barbeiros */}
-        <div className="flex flex-row justify-center gap-8">
-          {barbeiros.map((barber, index) => (
-            <div
-              key={index}
-              onClick={() => handleBarbeiroSelect(barber)}
-              className={`durartion-300 w-1/3 overflow-hidden rounded-xl bg-zinc-800 shadow-lg transition-all hover:scale-105 hover:shadow-2xl ${selectedBarbeiro?.name === barber.name ? "scale-105 border-4 border-purple-500 shadow-2xl" : ""}cursor-pointer`}
-            >
-              {/* Imagem Vertical */}
-              <div className="h-[650px] w-full">
-                <Image
-                  src={barber.image}
-                  alt={barber.name}
-                  width={500}
-                  height={500}
-                  className="h-full w-full object-cover transition-transform duration-300 hover:scale-110"
-                />
+    <div className="space-y-6">
+      {step === "barber" && (
+        <>
+          <h3 className="text-xl font-medium text-purple-400">Escolha seu barbeiro</h3>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+            {barbers.map((barber) => (
+              <div
+                key={barber.id}
+                className={`cursor-pointer rounded-lg p-4 text-center transition-all ${
+                  selectedBarberId === barber.id
+                    ? "bg-purple-500 text-white"
+                    : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                }`}
+                onClick={() => setSelectedBarberId(barber.id)}
+              >
+                <div className="mx-auto mb-2 h-20 w-20 overflow-hidden rounded-full">
+                  <img
+                    src={barber.image}
+                    alt={barber.name}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <p className="font-medium">{barber.name}</p>
               </div>
+            ))}
+          </div>
+        </>
+      )}
 
-              {/* Informações do Barbeiro */}
-              <div className="p-6 text-center">
-                <h2 className="mb-2 text-2xl font-bold text-purple-400">
-                  {barber.name}
-                </h2>
-                <h3 className="mb-4 text-lg text-zinc-300">
-                  {barber.especiality}
-                </h3>
-                <p className="mb-6 text-zinc-400">{barber.description}</p>
+      {step === "date" && (
+        <>
+          <button
+            onClick={handleBack}
+            className="mb-4 flex items-center text-sm text-zinc-400 hover:text-white"
+          >
+            ← Voltar para seleção de barbeiro
+          </button>
+          <h3 className="text-xl font-medium text-purple-400">Escolha uma data</h3>
+          <div className="mx-auto max-w-sm">
+            <DaySelector
+              selectedDate={selectedDate}
+              onSelect={setSelectedDate}
+            />
+          </div>
+        </>
+      )}
 
-                <button className="w-full rounded-full bg-gradient-to-r from-purple-600 to-pink-600 py-3 font-bold text-white transition-all hover:from-purple-700 hover:to-pink-700">
-                  Selecionar Barbeiro
-                </button>
-              </div>
+      {step === "time" && (
+        <>
+          <button
+            onClick={handleBack}
+            className="mb-4 flex items-center text-sm text-zinc-400 hover:text-white"
+          >
+            ← Voltar para seleção de data
+          </button>
+          <h3 className="text-xl font-medium text-purple-400">
+            Escolha um horário para{" "}
+            {selectedDate && format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+          </h3>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {availableTimes.map((time) => (
+              <button
+                key={time}
+                className={`rounded-md py-2 text-center transition-colors ${
+                  selectedTime === time
+                    ? "bg-purple-500 text-white"
+                    : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                }`}
+                onClick={() => setSelectedTime(time)}
+              >
+                {time}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {step === "info" && (
+        <>
+          <button
+            onClick={handleBack}
+            className="mb-4 flex items-center text-sm text-zinc-400 hover:text-white"
+          >
+            ← Voltar para seleção de horário
+          </button>
+          <h3 className="text-xl font-medium text-purple-400">Seus dados</h3>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="name" className="mb-1 block text-sm font-medium text-zinc-300">
+                Nome completo
+              </label>
+              <input
+                type="text"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-white focus:border-purple-500 focus:outline-none"
+                placeholder="Digite seu nome completo"
+              />
             </div>
-          ))}
-        </div>
-
-        {/* Container da Data e Horário */}
-        {selectedBarbeiro && (
-          <div className="container mx-auto px-4 py-16">
-            <h1 className="mb-16 bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-center text-3xl font-black text-transparent md:text-3xl">
-              Escolha uma data disponível de {selectedBarbeiro.name}
-            </h1>
-
-            <div className="flex justify-center">
-              <Calendar onDateSelect={handleDateSelect} />
+            <div>
+              <label htmlFor="phone" className="mb-1 block text-sm font-medium text-zinc-300">
+                Telefone
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                value={phone}
+                onChange={handlePhoneChange}
+                className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-white focus:border-purple-500 focus:outline-none"
+                placeholder="(00) 00000-0000"
+                maxLength={15}
+              />
             </div>
           </div>
-        )}
-        
-        <div className="py-5">
-          <button
-          onClick={() => router.push("/escolha-agendamento")}
-          className="text=white p-4 transition-colors hover:text-purple-400"
-        >
-          <CircleArrowLeft size={48} />
-          </button> 
-        </div>
+        </>
+      )}
 
+      <div className="mt-6 flex justify-end">
+        <button
+          onClick={handleNext}
+          className="rounded-md bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-2 font-medium text-white transition-all hover:from-purple-700 hover:to-pink-700"
+        >
+          {step === "info" ? "Confirmar" : "Próximo"}
+        </button>
       </div>
-    </main>
+    </div>
   );
 };
 

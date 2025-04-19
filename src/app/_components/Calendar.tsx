@@ -28,24 +28,24 @@ const Calendar: React.FC<CalendarProps> = ({ onDateSelect }) => {
     onDateSelect(date);
   };
 
-  // const scrollCalendar = (direction: "left" | "right") => {
-  //   if (calendarRef.current) {
-  //     calendarRef.current.scrollBy({
-  //       left: direction === "left" ? -100 : 100,
-  //       behavior: "smooth",
-  //     });
-  //   }
-  // };
+  const scrollCalendar = (direction: "left" | "right") => {
+    if (calendarRef.current) {
+      calendarRef.current.scrollBy({
+        left: direction === "left" ? -100 : 100,
+        behavior: "smooth",
+      });
+    }
+  };
 
   return (
-    <div className="rounded-lg bg-slate-900 p-4 shadow-md">
-      <div className="grid grid-cols-7 gap-2">
-        {/* <button
+    <div className="rounded-lg bg-slate-900 p-2 shadow-md">
+        <button
           onClick={() => scrollCalendar("left")}
           className="rounded-full bg-gray-200 p-2 transition-colors hover:bg-gray-300"
         >
           <ChevronLeft size={20} />
-        </button> */}
+        </button>
+      <div className="grid grid-cols-7 gap-2">
         {daysOfWeek.map((day, index) => (
           <button
             key={index}
@@ -61,12 +61,12 @@ const Calendar: React.FC<CalendarProps> = ({ onDateSelect }) => {
           </button>
         ))}
       </div>
-      {/* <button
+      <button
         onClick={() => scrollCalendar("right")}
         className="rounded-full bg-gray-200 p-2 transition-colors hover:bg-gray-300"
       >
         <ChevronRight size={20} />
-      </button> */}
+      </button>
     </div>
   );
 };
