@@ -98,6 +98,7 @@ const ServiceSelection = () => {
       phone: formattedPhone,
       barber_id: selectedBarber.id,
       user_id: user.id, // <-- CLERK USER ID
+      price: String(selectedService.price),
     });
   };
 

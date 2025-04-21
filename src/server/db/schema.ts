@@ -10,6 +10,7 @@ import {
   varchar,
   date,
   time,
+  numeric,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -30,6 +31,8 @@ export const createTable = pgTableCreator((name) => `barbershop-project_${name}`
   time: time("time").notNull(),
   status: varchar("status", { length: 50 }).default("pendente").notNull(),
   barber_id: varchar("barber_id").notNull(),
+  price: varchar("price", { length: 50 }).notNull(),
+  phone: varchar("phone", { length: 20 }).notNull(),
   created_at: timestamp("created_at", { withTimezone: true })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull()

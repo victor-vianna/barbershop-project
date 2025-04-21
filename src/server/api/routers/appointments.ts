@@ -15,6 +15,7 @@ export const appointmentsRouter = createTRPCRouter({
         phone: z.string().min(1),
         barber_id: z.string().min(1),
         user_id: z.string().min(1),
+        price: z.string().min(1),
       })
     )
     .mutation(async ({ input }) => {
@@ -120,7 +121,7 @@ export const appointmentsRouter = createTRPCRouter({
     .input(
       z.object({
         id: z.number(),
-        status: z.enum(["pendente", "concluido", "cancelado"]),
+        status: z.enum(["pendente", "confirmado", "cancelado"]),
       })
     )
     .mutation(async ({ input }) => {

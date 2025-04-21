@@ -15,6 +15,13 @@
       "when": 1745086464883,
       "tag": "0001_greedy_karen_page",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1745256298129,
+      "tag": "0002_tense_skullbuster",
+      "breakpoints": true
     }
   ]
 }

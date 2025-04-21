@@ -10,7 +10,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={GeistSans.variable}>
-      <body>
+      <body className="min-h-screen flex flex-col ">
         <ClientWrapper>{children}</ClientWrapper>
       </body>
     </html>

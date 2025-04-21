@@ -1,320 +1,237 @@
-// pages/admin/dashboard.jsx
-"use client"
+'use client';
 
-import { useState } from 'react';
-import Head from 'next/head';
-import Link from 'next/link';
-import { Calendar, Clock, Scissors, User, Filter, PieChart } from 'lucide-react';
+import { useState } from "react";
+import { api } from "~/trpc/react";
+import { format } from "date-fns";
+import ptBR from "date-fns/locale/pt-BR";
+import { Badge } from "~/components/ui/badge";
+import { Input } from "~/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import { Button } from "~/components/ui/button";
+import Link from "next/link";
+import Head from "next/head";
+
+const barberNames: Record<string, string> = {
+  "1": "Igor",
+  "2": "Jhélita",
+  "3": "Eliel",
+};
 
 export default function AdminDashboard() {
-  // Estados para gerenciar os dados da página
-  const [dataFiltro, setDataFiltro] = useState('');
-  const [statusFiltro, setStatusFiltro] = useState('todos');
-  const [barbeiroFiltro, setBarbeiroFiltro] = useState('todos');
-  
-  // Dados simulados de agendamentos
-  const [agendamentos, setAgendamentos] = useState([
-    {
-      id: 1,
-      cliente: 'João Silva',
-      telefone: '(11) 98765-4321',
-      data: '20/04/2025',
-      hora: '14:30',
-      servico: 'Corte de Cabelo',
-      valor: 45.00,
-      barbeiro: 'Carlos',
-      status: 'confirmado'
-    },
-    {
-      id: 2,
-      cliente: 'Pedro Oliveira',
-      telefone: '(11) 91234-5678',
-      data: '20/04/2025',
-      hora: '10:00',
-      servico: 'Barba',
-      valor: 30.00,
-      barbeiro: 'Marcos',
-      status: 'confirmado'
-    },
-    {
-      id: 3,
-      cliente: 'André Costa',
-      telefone: '(11) 95555-9999',
-      data: '20/04/2025',
-      hora: '16:15',
-      servico: 'Corte e Barba',
-      valor: 70.00,
-      barbeiro: 'Felipe',
-      status: 'confirmado'
-    },
-    {
-      id: 4,
-      cliente: 'Lucas Mendes',
-      telefone: '(11) 93333-2222',
-      data: '21/04/2025',
-      hora: '09:30',
-      servico: 'Corte de Cabelo',
-      valor: 45.00,
-      barbeiro: 'Carlos',
-      status: 'confirmado'
-    },
-    {
-      id: 5,
-      cliente: 'Gabriel Santos',
-      telefone: '(11) 94444-1111',
-      data: '21/04/2025',
-      hora: '15:00',
-      servico: 'Corte e Barba',
-      valor: 70.00,
-      barbeiro: 'Marcos',
-      status: 'cancelado'
-    }
-  ]);
+  const { data = [] } = api.appointments.list.useQuery();
 
-  // Lista de barbeiros
-  const barbeiros = ['Carlos', 'Marcos', 'Felipe'];
+  const utils = api.useUtils();
 
-  // Função para alterar o status do agendamento
-  const alterarStatus = (id: any, novoStatus: any) => {
-    setAgendamentos(
-      agendamentos.map(agendamento => 
-        agendamento.id === id 
-          ? { ...agendamento, status: novoStatus } 
-          : agendamento
-      )
-    );
-  };
+const updateStatus = api.appointments.updateStatus.useMutation({
+  onSuccess: () => {
+    utils.appointments.list.invalidate(); // refetch lista após sucesso
+  },
+  onError: (err) => {
+    console.error("Erro ao atualizar status:", err);
+    alert("Erro ao atualizar status do agendamento.");
+  }
+});
 
-  // Função para adicionar novo agendamento
-  const adicionarAgendamento = () => {
-    // Aqui você implementaria a lógica para abrir um formulário ou modal
-    alert('Abrir formulário para novo agendamento');
-  };
+const handleUpdateStatus = (id: number, status: "confirmado" | "cancelado") => {
+  updateStatus.mutate({ id, status });
+};
 
-  // Função para filtrar os agendamentos
-  const agendamentosFiltrados = agendamentos.filter(agendamento => {
-    // Filtro por data
-    const passaFiltroPorData = !dataFiltro || agendamento.data === dataFiltro;
-    
-    // Filtro por status
-    const passaFiltroPorStatus = statusFiltro === 'todos' || agendamento.status === statusFiltro;
-    
-    // Filtro por barbeiro
-    const passaFiltroPorBarbeiro = barbeiroFiltro === 'todos' || agendamento.barbeiro === barbeiroFiltro;
-    
-    return passaFiltroPorData && passaFiltroPorStatus && passaFiltroPorBarbeiro;
+  const [filters, setFilters] = useState({
+    date: "",
+    status: "Todos",
+    barber: "Todos",
   });
 
-  // Cálculo de dados para o resumo
-  const totalAgendamentos = agendamentosFiltrados.length;
-  const agendamentosConfirmados = agendamentosFiltrados.filter(a => a.status === 'confirmado').length;
-  const agendamentosCancelados = agendamentosFiltrados.filter(a => a.status === 'cancelado').length;
-  const valorTotal = agendamentosFiltrados
-    .filter(a => a.status === 'confirmado')
-    .reduce((total, atual) => total + atual.valor, 0);
+  const appointments = data
+    .map((item) => ({
+      ...item,
+      id: String(item.id),
+      name: barberNames[item.barber_id] ?? item.barber_id,
+    }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const filtered = appointments.filter((a) => {
+    const matchDate = filters.date ? format(new Date(a.date), "yyyy-MM-dd") === filters.date : true;
+    const matchStatus = filters.status === "Todos" || a.status === filters.status.toLowerCase();
+    const matchBarber = filters.barber === "Todos" || a.barber_id === filters.barber;
+    return matchDate && matchStatus && matchBarber;
+  });
+
+  const total = filtered.length;
+  const confirmados = filtered.filter((a) => a.status === "confirmado").length;
+  const cancelados = filtered.filter((a) => a.status === "cancelado").length;
+  const valorTotal = filtered
+    .filter((a) => a.status === "confirmado")
+    .reduce((acc, cur) => {
+      const priceValue = cur.price ? parseFloat(String(cur.price)) : 0;
+      return acc + priceValue;
+    }, 0);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen flex flex-col bg-zinc-900 text-white">
+
       <Head>
-        <title>Administração | Igor Barber</title>
+        <title>Dashboard de Agendamentos</title>
       </Head>
 
       {/* Header */}
       <header className="bg-gradient-to-r from-purple-600 to-pink-500 py-4">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center">
-            <Link href="/">
-              <h1 className="text-2xl font-bold cursor-pointer">IGOR BARBER</h1>
-            </Link>
-            <div className="hidden md:block">
-              <span className="font-medium">Painel de Administração</span>
-            </div>
-            <nav>
-              <Link href="/" className="px-4 py-2 hover:underline">
-                Voltar ao Site
-              </Link>
-            </nav>
-          </div>
+        <div className="container mx-auto px-4 flex justify-between items-center">
+          <Link href="/">
+            <h1 className="text-2xl font-bold cursor-pointer">IGOR BARBER</h1>
+          </Link>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <h2 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+      {/* Conteúdo principal */}
+      <main className="flex-grow p-8">
+      <h2 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
           Dashboard de Agendamentos
         </h2>
-
-        {/* Dashboard Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Total de Agendamentos</h3>
-              <Calendar className="text-purple-500" size={24} />
-            </div>
-            <p className="text-3xl font-bold">{totalAgendamentos}</p>
-          </div>
-          
-          <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Confirmados</h3>
-              <Clock className="text-green-500" size={24} />
-            </div>
-            <p className="text-3xl font-bold">{agendamentosConfirmados}</p>
-          </div>
-          
-          <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Cancelados</h3>
-              <User className="text-red-500" size={24} />
-            </div>
-            <p className="text-3xl font-bold">{agendamentosCancelados}</p>
-          </div>
-          
-          <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Valor Total</h3>
-              <PieChart className="text-pink-500" size={24} />
-            </div>
-            <p className="text-3xl font-bold">R$ {valorTotal.toFixed(2)}</p>
-          </div>
+        {/* Estatísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <StatCard title="Total de Agendamentos" icon="📅" value={total} />
+          <StatCard title="Confirmados" icon="✅" value={confirmados} />
+          <StatCard title="Cancelados" icon="❌" value={cancelados} />
+          <StatCard title="Valor Total" icon="💰" value={`R$ ${valorTotal.toFixed(2)}`} />
         </div>
 
-        {/* Filtros e Ações */}
-        <div className="bg-gray-800 rounded-lg p-6 shadow-lg mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold flex items-center">
-              <Filter size={20} className="mr-2 text-purple-500" />
-              Filtros
-            </h3>
-            <button 
-              onClick={adicionarAgendamento}
-              className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white px-4 py-2 rounded-lg transition duration-300"
-            >
-              Novo Agendamento
-            </button>
-          </div>
-          
+        {/* Filtros */}
+        <div className="bg-zinc-800 p-4 rounded-lg mb-4">
+          <h2 className="text-lg font-semibold text-purple-300 mb-4">Filtros</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Data</label>
-              <input
-                type="text"
-                placeholder="DD/MM/AAAA"
-                value={dataFiltro}
-                onChange={(e) => setDataFiltro(e.target.value)}
-                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Status</label>
-              <select
-                value={statusFiltro}
-                onChange={(e) => setStatusFiltro(e.target.value)}
-                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                <option value="todos">Todos</option>
-                <option value="confirmado">Confirmado</option>
-                <option value="cancelado">Cancelado</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Barbeiro</label>
-              <select
-                value={barbeiroFiltro}
-                onChange={(e) => setBarbeiroFiltro(e.target.value)}
-                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                <option value="todos">Todos</option>
-                {barbeiros.map((barbeiro, index) => (
-                  <option key={index} value={barbeiro}>{barbeiro}</option>
+            <Input
+              type="date"
+              className="bg-zinc-700 text-white"
+              value={filters.date}
+              onChange={(e) => setFilters({ ...filters, date: e.target.value })}
+            />
+            <Select
+              value={filters.status}
+              onValueChange={(value) => setFilters({ ...filters, status: value })}
+            >
+              <SelectTrigger className="bg-zinc-700 text-white">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {["Todos", "Confirmado", "Cancelado", "Pendente"].map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {status}
+                  </SelectItem>
                 ))}
-              </select>
-            </div>
+              </SelectContent>
+            </Select>
+            <Select
+              value={filters.barber}
+              onValueChange={(value) => setFilters({ ...filters, barber: value })}
+            >
+              <SelectTrigger className="bg-zinc-700 text-white">
+                <SelectValue placeholder="Barbeiro" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todos">Todos</SelectItem>
+                {Object.entries(barberNames).map(([id, name]) => (
+                  <SelectItem key={id} value={id}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
-        {/* Tabela de Agendamentos */}
-        <div className="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-700">
-                  <th className="py-3 px-4 text-left font-semibold">Cliente</th>
-                  <th className="py-3 px-4 text-left font-semibold">Telefone</th>
-                  <th className="py-3 px-4 text-left font-semibold">Data</th>
-                  <th className="py-3 px-4 text-left font-semibold">Hora</th>
-                  <th className="py-3 px-4 text-left font-semibold">Serviço</th>
-                  <th className="py-3 px-4 text-left font-semibold">Valor</th>
-                  <th className="py-3 px-4 text-left font-semibold">Barbeiro</th>
-                  <th className="py-3 px-4 text-left font-semibold">Status</th>
-                  <th className="py-3 px-4 text-left font-semibold">Ações</th>
+        {/* Tabela */}
+        <div className="overflow-x-auto rounded-lg shadow">
+          <table className="min-w-full bg-zinc-800 text-left">
+            <thead>
+              <tr className="text-purple-300 border-b border-zinc-700">
+                <th className="p-4">Cliente</th>
+                <th className="p-4">Telefone</th>
+                <th className="p-4">Data</th>
+                <th className="p-4">Hora</th>
+                <th className="p-4">Serviço</th>
+                <th className="p-4">Valor</th>
+                <th className="p-4">Barbeiro</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((a) => (
+                <tr key={a.id} className="hover:bg-zinc-700 transition-colors">
+                  <td className="p-4">{a.client_name}</td>
+                  <td className="p-4">{a.phone}</td>
+                  <td className="p-4">{format(new Date(a.date), "dd/MM/yyyy", { locale: ptBR })}</td>
+                  <td className="p-4">{a.time}</td>
+                  <td className="p-4">{a.service}</td>
+                  <td className="p-4">R$ {a.price}</td>
+                  <td className="p-4">{a.name}</td>
+                  <td className="p-4">
+                    <Badge
+                      className={
+                        a.status === "cancelado"
+                          ? "bg-red-500"
+                          : a.status === "confirmado"
+                          ? "bg-green-500"
+                          : "bg-yellow-500"
+                      }
+                    >
+                      {a.status}
+                    </Badge>
+                  </td>
+                  <td className="p-4 space-x-2">
+  {a.status !== "confirmado" && (
+    <Button
+      variant="success"
+      size="sm"
+      onClick={() => handleUpdateStatus(parseInt(a.id), "confirmado")}
+    >
+      Confirmar
+    </Button>
+  )}
+  {a.status !== "cancelado" && (
+    <Button
+      variant="destructive"
+      size="sm"
+      onClick={() => handleUpdateStatus(parseInt(a.id), "cancelado")}
+    >
+      Cancelar
+    </Button>
+  )}
+  {/* <Button variant="secondary" size="sm" onClick={() => alert(`Editar agendamento ${a.id}`)}>
+    Editar
+  </Button> */}
+</td>
+
                 </tr>
-              </thead>
-              <tbody>
-                {agendamentosFiltrados.length > 0 ? (
-                  agendamentosFiltrados.map((agendamento) => (
-                    <tr key={agendamento.id} className="border-b border-gray-700 hover:bg-gray-700">
-                      <td className="py-3 px-4">{agendamento.cliente}</td>
-                      <td className="py-3 px-4">{agendamento.telefone}</td>
-                      <td className="py-3 px-4">{agendamento.data}</td>
-                      <td className="py-3 px-4">{agendamento.hora}</td>
-                      <td className="py-3 px-4">{agendamento.servico}</td>
-                      <td className="py-3 px-4">R$ {agendamento.valor.toFixed(2)}</td>
-                      <td className="py-3 px-4">{agendamento.barbeiro}</td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-block px-2 py-1 rounded text-xs ${
-                          agendamento.status === 'confirmado' 
-                            ? 'bg-green-500' 
-                            : 'bg-red-500'
-                        }`}>
-                          {agendamento.status === 'confirmado' ? 'Confirmado' : 'Cancelado'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        {agendamento.status === 'confirmado' ? (
-                          <button
-                            onClick={() => alterarStatus(agendamento.id, 'cancelado')}
-                            className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-sm mr-2"
-                          >
-                            Cancelar
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => alterarStatus(agendamento.id, 'confirmado')}
-                            className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-sm mr-2"
-                          >
-                            Confirmar
-                          </button>
-                        )}
-                        <button
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-sm"
-                        >
-                          Editar
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan='9' className="py-8 text-center text-gray-400">
-                      Nenhum agendamento encontrado com os filtros aplicados.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="bg-black py-6 mt-10">
+      <footer className="bg-black py-6">
         <div className="container mx-auto px-4 text-center">
-          <p>&copy; {new Date().getFullYear()} Igor Barber - Painel Administrativo</p>
+          <p>&copy; {new Date().getFullYear()} Igor Barber - Dashboard do Administrador</p>
         </div>
       </footer>
     </div>
   );
 }
+
+const StatCard = ({
+  title,
+  value,
+  icon,
+}: {
+  title: string;
+  value: string | number;
+  icon: string;
+}) => (
+  <div className="bg-zinc-800 p-4 rounded-lg text-center border border-zinc-700">
+    <h2 className="text-md text-zinc-300 mb-2">{title}</h2>
+    <div className="text-2xl font-bold">{value}</div>
+    <div className="text-2xl mt-1">{icon}</div>
+  </div>
+);
