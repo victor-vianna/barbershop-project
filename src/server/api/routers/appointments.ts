@@ -14,9 +14,10 @@ export const appointmentsRouter = createTRPCRouter({
         time: z.string().min(1),
         phone: z.string().min(1),
         barber_id: z.string().min(1),
+        user_id: z.string().min(1),
       })
     )
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       // Verificar disponibilidade antes de salvar
       const formattedDate = new Date(input.date).toISOString().split('T')[0];
       
@@ -73,6 +74,7 @@ export const appointmentsRouter = createTRPCRouter({
     list: publicProcedure
     .input(
       z.object({
+        user_id: z.string().optional(),
         status: z.enum(["todos", "pendente", "concluido", "cancelado"]).optional().default("todos"),
         startDate: z.string().optional(),
         endDate: z.string().optional(),
@@ -80,7 +82,7 @@ export const appointmentsRouter = createTRPCRouter({
       }).optional()
     )
     .query(async ({ input = {} }) => {
-      const { status = "todos", startDate, endDate, barberId } = input;
+      const { status = "todos", startDate, endDate, barberId, user_id } = input;
       
       const conditions = [];
   
@@ -98,6 +100,9 @@ export const appointmentsRouter = createTRPCRouter({
   
       if (barberId) {
         conditions.push(eq(appointments.barber_id, barberId));
+      }
+      if (user_id) {
+        conditions.push(eq(appointments.user_id, user_id));
       }
   
       const query = db

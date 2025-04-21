@@ -22,6 +22,7 @@ export const createTable = pgTableCreator((name) => `barbershop-project_${name}`
 
  // tabela de agendamentos
  export const appointments = createTable("appointment", {
+  user_id: varchar("user_id", { length: 255 }).notNull(),
   id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
   client_name: varchar("client_name", { length: 255 }).notNull(),
   service: varchar("service", { length: 255 }).notNull(),

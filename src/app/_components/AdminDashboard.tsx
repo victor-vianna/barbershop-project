@@ -298,7 +298,7 @@ export default function AdminDashboard() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="9" className="py-8 text-center text-gray-400">
+                    <td colSpan='9' className="py-8 text-center text-gray-400">
                       Nenhum agendamento encontrado com os filtros aplicados.
                     </td>
                   </tr>
