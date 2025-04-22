@@ -16,7 +16,6 @@ interface Service {
   description: string;
   price: number;
   duration: string;
-  image: string;
 }
 
 interface Barber {
@@ -140,33 +139,43 @@ const ServiceSelection = () => {
       id: 'corte',
       name: 'Corte de Cabelo',
       description: 'Corte tradicional ou moderno com acabamento perfeito e produtos de qualidade',
-      price: 45.0,
+      price: 40.0,
       duration: '45 min',
-      image: '/images/service-haircut.jpg',
     },
     {
       id: 'barba',
       name: 'Barba',
       description: 'Modelagem completa da barba com toalha quente e produtos especiais',
-      price: 35.0,
-      duration: '30 min',
-      image: '/images/service-beard.jpg',
+      price: 30.0,
+      duration: '20 min',
     },
     {
       id: 'corte-barba',
       name: 'Corte + Barba',
       description: 'Combinação de corte e barba com desconto especial',
-      price: 70.0,
-      duration: '1h 15min',
-      image: '/images/service-combo.jpg',
+      price: 60.0,
+      duration: '60 min',
+    },
+    {
+      id: 'corte-sobrancelha',
+      name: 'Corte + Sobrancelha',
+      description: 'Combinação de corte e design de sobrancelha com desconto',
+      price: 45.0,
+      duration: '50 min',
+    },
+    {
+      id: 'sobrancelha',
+      name: 'Sobrancelha',
+      description: 'Design da sobrancelha com a navalha',
+      price: 10.0,
+      duration: '5 min',
     },
     {
       id: 'pezinho',
       name: 'Pezinho',
       description: 'Acabamento na nuca e laterais para manter o visual alinhado',
-      price: 20.0,
-      duration: '15 min',
-      image: '/images/service-neckline.jpg',
+      price: 10.0,
+      duration: '5 min',
     },
   ];
 
