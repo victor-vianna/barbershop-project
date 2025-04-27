@@ -79,3 +79,18 @@ export function isWorkingDay(date: Date): boolean {
 export function getCurrentMonthName(date: Date = new Date()): string {
   return date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 }
+
+// utils/schedule.ts
+
+export const allPossibleTimes = [
+  "08:00", "09:00", "10:00", "11:00", "12:00",
+  "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"
+];
+
+export async function getAvailableTimes(date: string, barberId: string) {
+  // Fetch horários agendados do banco (ajuste conforme sua API)
+  const response = await fetch(`/api/appointments?date=${date}&barberId=${barberId}`);
+  const bookedTimes = await response.json(); // ex: ["10:00", "14:00"]
+
+  return allPossibleTimes.filter(time => !bookedTimes.includes(time));
+}

@@ -1,29 +1,45 @@
-# Create T3 App
+# 💈 Barbershop Project
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+Sistema de agendamento online para barbearias, desenvolvido com tecnologias modernas para garantir uma experiência fluida e intuitiva tanto para o cliente quanto para o barbeiro.
 
-## What's next? How do I make an app with this?
+## 📋 Funcionalidades
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+- Cadastro de serviços, barbeiros e horários disponíveis
+- Agendamento de horário em poucos cliques
+- Seleção de barbeiro e visualização de perfil
+- Controle de status dos agendamentos (pendente, confirmado, concluído, cancelado)
+- Interface amigável e responsiva
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+## 🚀 Tecnologias Utilizadas
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+- **Frontend**: Next.js, Tailwind CSS, TypeScript
+- **Backend**: tRPC, Supabase
+- **Banco de Dados**: PostgreSQL via Supabase
+- **ORM**: Drizzle ORM
 
-## Learn More
+## 🧑‍💻 Como rodar o projeto localmente
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+# 1. Clone o repositório
+git clone https://github.com/victor-vianna/barbershop-project.git
+cd barbershop-project
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+# 2. instale as dependências
+npm install
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+# 3. Configure as variáveis de ambiente
+Crie um arquivo .env na raiz do projeto com base no .env.example, caso exista. As variáveis necessárias geralmente incluem:
+DATABASE_URL=...
+SUPABASE_URL=...
+SUPABASE_ANON_KEY=...
 
-## How do I deploy this?
+# 4. Execute o projeto
+npm run dev
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+
+
+
+
+### 📄 Licença
+Este projeto está licenciado sob os termos da licença MIT.
+
+Desenvolvido por Victor Vianna
