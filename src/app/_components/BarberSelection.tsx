@@ -3,14 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Calendar } from "~/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
-import {
-  addDays,
-  format,
-  isAfter,
-  isBefore,
-  isToday,
-  startOfDay,
-} from "date-fns";
+import { addDays, format, isAfter, isBefore, startOfDay } from "date-fns";
 import { toast } from "~/hooks/use-toast";
 import DaySelector from "./DaySelector";
 import { motion } from "framer-motion";
@@ -22,8 +15,8 @@ import {
   ArrowLeft,
   Check,
 } from "lucide-react";
-import { api } from "~/trpc/react"; // TRPC import
 import { allPossibleTimes } from "../utils/calendar";
+import { api } from "~/trpc/react";
 
 interface BarberSelectionProps {
   onClose: () => void;
@@ -51,30 +44,59 @@ const BarberSelection: React.FC<BarberSelectionProps> = ({
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
+  // Aqui chamamos a API para pegar horários reservados
   const {
-    data: bookedAppointments,
-    isLoading: isLoadingTimes,
+    data: bookedTimes = [],
     refetch,
-  } = api.appointments.list.useQuery(
+    isLoading: loadingTimes,
+  } = api.appointments.getBookedTimes.useQuery(
     {
-      startDate: selectedDate?.toISOString().split("T")[0],
-      endDate: selectedDate?.toISOString().split("T")[0],
-      barberId: selectedBarberId ?? undefined,
+      date: selectedDate?.toISOString().split("T")[0] || "",
+      barberId: selectedBarberId || "",
     },
     { enabled: !!selectedDate && !!selectedBarberId },
   );
 
   useEffect(() => {
-    if (bookedAppointments) {
-      const bookedTimes = bookedAppointments.map((a) => a.time);
-      const freeTimes = allPossibleTimes.filter(
-        (time) => !bookedTimes.includes(time),
-      );
-      setAvailableTimes(freeTimes);
+    if (selectedDate && selectedBarberId) {
+      refetch();
     }
-  }, [bookedAppointments]);
+  }, [selectedDate, selectedBarberId, refetch]);
+
+  const availableTimes = allPossibleTimes.filter((time) => {
+    return !bookedTimes.some((bookedTime) => {
+      // Se bookedTime for uma string, compara os primeiros 5 caracteres (HH:MM)
+      if (typeof bookedTime === "string") {
+        return bookedTime.substring(0, 5) === time;
+      }
+      return false;
+    });
+  });
+
+  console.log("BookedTimes:", bookedTimes);
+  console.log("AllPossibleTimes:", allPossibleTimes);
+  console.log("AvailableTimes:", availableTimes);
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0 },
+  };
+
+  const childVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 100 },
+    },
+  };
 
   const barbers = [
     {
@@ -97,22 +119,14 @@ const BarberSelection: React.FC<BarberSelectionProps> = ({
     },
   ];
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
-  };
-  const childVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { type: "spring", stiffness: 100 },
-    },
-  };
-
+  // Função para formatar o telefone automaticamente
   const formatPhone = (value: string) => {
     if (!value) return value;
+
+    // Remove todos os caracteres não numéricos
     const phoneNumber = value.replace(/\D/g, "");
+
+    // Aplica a formatação (00) 00000-0000
     if (phoneNumber.length <= 11) {
       let formatted = phoneNumber;
       if (phoneNumber.length > 2) {
@@ -123,6 +137,7 @@ const BarberSelection: React.FC<BarberSelectionProps> = ({
       }
       return formatted;
     }
+
     return value;
   };
 
@@ -171,17 +186,24 @@ const BarberSelection: React.FC<BarberSelectionProps> = ({
         });
         return;
       }
+
+      // Validar formato do telefone
       const phoneRegex = /^\(\d{2}\)\s\d{5}-\d{4}$/;
       if (!phoneRegex.test(phone)) {
         toast({
           title: "Telefone inválido",
-          description: "Por favor, informe um número válido.",
+          description:
+            "Por favor, informe um número de telefone válido no formato (00) 00000-0000.",
           variant: "destructive",
         });
         return;
       }
+
+      // Atualizar os estados no componente pai
       setClientName(name);
       setPhoneNumber(phone);
+
+      // Confirmar a seleção
       if (selectedBarberId && selectedDate && selectedTime) {
         onConfirm(selectedBarberId, selectedDate, selectedTime);
       }
@@ -194,11 +216,24 @@ const BarberSelection: React.FC<BarberSelectionProps> = ({
     else if (step === "info") setStep("time");
   };
 
+  // Função para desativar datas passadas e fins de semana
+  const disabledDays = (date: Date) => {
+    const today = startOfDay(new Date());
+    const maxDate = addDays(today, 30); // Permite agendamentos até 30 dias no futuro
+
+    return (
+      isBefore(date, today) || // Desativa datas no passado
+      isAfter(date, maxDate) || // Desativa datas muito distantes
+      date.getDay() === 0 // Desativa domingos (0 = domingo)
+    );
+  };
+
   const handleSelectBarber = (barberId: string, barberName: string) => {
     setSelectedBarberId(barberId);
     setSelectedBarberName(barberName);
   };
 
+  // Progress bar
   const getProgress = () => {
     if (step === "barber") return 25;
     if (step === "date") return 50;
@@ -208,7 +243,7 @@ const BarberSelection: React.FC<BarberSelectionProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Barra de progresso */}
+      {/* Progress Indicator */}
       <div className="mb-8">
         <div className="mb-2 flex justify-between text-xs text-zinc-400">
           <span>Barbeiro</span>
@@ -226,7 +261,7 @@ const BarberSelection: React.FC<BarberSelectionProps> = ({
         </div>
       </div>
 
-      {/* Resumo da seleção */}
+      {/* Summary of selections */}
       {(selectedBarberId || selectedDate || selectedTime) && (
         <div className="mb-4 rounded-lg bg-zinc-800/50 p-3">
           <h4 className="mb-2 text-sm font-medium text-zinc-300">
@@ -235,30 +270,32 @@ const BarberSelection: React.FC<BarberSelectionProps> = ({
           <div className="flex flex-wrap gap-3 text-xs">
             {selectedBarberName && (
               <div className="flex items-center gap-1 rounded-full bg-purple-900/30 px-3 py-1 text-purple-300">
-                <User size={12} /> <span>{selectedBarberName}</span>
+                <User size={12} />
+                <span>{selectedBarberName}</span>
               </div>
             )}
             {selectedDate && (
               <div className="flex items-center gap-1 rounded-full bg-pink-900/30 px-3 py-1 text-pink-300">
-                <CalendarIcon size={12} />{" "}
+                <CalendarIcon size={12} />
                 <span>{format(selectedDate, "dd/MM/yyyy")}</span>
               </div>
             )}
             {selectedTime && (
               <div className="flex items-center gap-1 rounded-full bg-blue-900/30 px-3 py-1 text-blue-300">
-                <Clock size={12} /> <span>{selectedTime}</span>
+                <Clock size={12} />
+                <span>{selectedTime}</span>
               </div>
             )}
             {selectedService && (
               <div className="flex items-center gap-1 rounded-full bg-green-900/30 px-3 py-1 text-green-300">
-                <Check size={12} /> <span>{selectedService}</span>
+                <Check size={12} />
+                <span>{selectedService}</span>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Steps de Navegação */}
       {step === "barber" && (
         <motion.div
           variants={containerVariants}
@@ -283,21 +320,31 @@ const BarberSelection: React.FC<BarberSelectionProps> = ({
                 whileTap={{ scale: 0.98 }}
                 className={`cursor-pointer overflow-hidden rounded-xl shadow-lg transition-all ${
                   selectedBarberId === barber.id
-                    ? "ring-2 ring-purple-500"
+                    ? "ring-2 ring-purple-500 ring-offset-2 ring-offset-zinc-900"
                     : "hover:shadow-purple-500/20"
                 }`}
                 onClick={() => handleSelectBarber(barber.id, barber.name)}
               >
-                <img
-                  src={barber.image}
-                  alt={barber.name}
-                  className="h-60 w-full object-cover"
-                />
+                <div className="relative h-60 overflow-hidden">
+                  <img
+                    src={barber.image}
+                    alt={barber.name}
+                    className="h-full w-full object-cover object-top transition-transform duration-700 hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent opacity-70" />
+                </div>
                 <div
-                  className={`p-4 ${selectedBarberId === barber.id ? "bg-purple-900/80" : "bg-zinc-800"}`}
+                  className={`p-4 ${selectedBarberId === barber.id ? "bg-gradient-to-r from-purple-900/80 to-pink-900/80" : "bg-zinc-800"}`}
                 >
-                  <h4 className="text-xl text-white">{barber.name}</h4>
+                  <h4 className="text-xl font-medium text-white">
+                    {barber.name}
+                  </h4>
                   <p className="text-sm text-zinc-300">{barber.specialty}</p>
+                  {selectedBarberId === barber.id && (
+                    <div className="mt-2 rounded-full bg-purple-500/20 px-2 py-1 text-xs text-purple-300">
+                      Selecionado
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -314,9 +361,9 @@ const BarberSelection: React.FC<BarberSelectionProps> = ({
         >
           <button
             onClick={handleBack}
-            className="mb-4 flex items-center gap-1 text-sm text-zinc-400 hover:text-purple-400"
+            className="mb-4 flex items-center gap-1 text-sm text-zinc-400 transition-colors hover:text-purple-400"
           >
-            <ArrowLeft size={16} /> Voltar
+            <ArrowLeft size={16} /> Voltar para seleção de barbeiro
           </button>
           <motion.h3
             variants={childVariants}
@@ -324,7 +371,15 @@ const BarberSelection: React.FC<BarberSelectionProps> = ({
           >
             Escolha uma data
           </motion.h3>
-          <DaySelector selectedDate={selectedDate} onSelect={setSelectedDate} />
+          <motion.div
+            variants={childVariants}
+            className="mx-auto max-w-lg rounded-xl bg-zinc-800/50 p-6 shadow-lg"
+          >
+            <DaySelector
+              selectedDate={selectedDate}
+              onSelect={setSelectedDate}
+            />
+          </motion.div>
         </motion.div>
       )}
 
@@ -337,9 +392,9 @@ const BarberSelection: React.FC<BarberSelectionProps> = ({
         >
           <button
             onClick={handleBack}
-            className="mb-4 flex items-center gap-1 text-sm text-zinc-400 hover:text-purple-400"
+            className="mb-4 flex items-center gap-1 text-sm text-zinc-400 transition-colors hover:text-purple-400"
           >
-            <ArrowLeft size={16} /> Voltar
+            <ArrowLeft size={16} /> Voltar para seleção de data
           </button>
           <motion.h3
             variants={childVariants}
@@ -349,32 +404,54 @@ const BarberSelection: React.FC<BarberSelectionProps> = ({
             {selectedDate &&
               format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
           </motion.h3>
-
-          {isLoadingTimes ? (
-            <div className="text-center text-zinc-400">
+          {loadingTimes ? (
+            <motion.div className="text-center text-zinc-400">
               Carregando horários disponíveis...
-            </div>
-          ) : availableTimes.length === 0 ? (
-            <div className="text-center text-zinc-400">
-              Nenhum horário disponível para esta data.
-            </div>
+            </motion.div>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-5">
-              {availableTimes.map((time) => (
-                <button
-                  key={time}
-                  onClick={() => setSelectedTime(time)}
-                  className={`flex items-center justify-center gap-2 rounded-lg py-3 text-center transition-all ${
-                    selectedTime === time
-                      ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
-                      : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                  }`}
-                >
-                  <Clock size={16} />
-                  {time}
-                </button>
-              ))}
-            </div>
+            <motion.div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {availableTimes.map((time) => {
+                const isBooked = bookedTimes.includes(time);
+                const isSelected = selectedTime === time;
+                return (
+                  <motion.button
+                    key={time}
+                    disabled={isBooked}
+                    onClick={() => !isBooked && setSelectedTime(time)}
+                    className={`flex items-center justify-center gap-2 rounded-lg px-4 py-3 transition-all ${
+                      selectedTime === time
+                        ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
+                        : isBooked
+                          ? "cursor-not-allowed bg-zinc-700 text-zinc-500"
+                          : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                    }`}
+                    whileHover={!isBooked ? { scale: 1.03 } : {}}
+                    whileTap={!isBooked ? { scale: 0.97 } : {}}
+                  >
+                    <Clock size={18} className="mr-1" />
+                    <span className="text-sm font-medium">{time}</span>
+                    {isBooked && (
+                      <span className="ml-1 text-xs text-zinc-500">
+                        (Reservado)
+                      </span>
+                    )}
+                  </motion.button>
+                );
+              })}
+            </motion.div>
+          )}
+          {selectedTime && !loadingTimes && (
+            <motion.div
+              className="mt-4 text-center text-sm text-zinc-300"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              Horário selecionado:{" "}
+              <span className="font-medium text-purple-400">
+                {selectedTime}
+              </span>
+            </motion.div>
           )}
         </motion.div>
       )}
@@ -449,13 +526,12 @@ const BarberSelection: React.FC<BarberSelectionProps> = ({
         </motion.div>
       )}
 
-      {/* Botão Próximo */}
       <div className="mt-8 flex justify-end">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleNext}
-          className="rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-medium text-white shadow-lg hover:from-purple-700 hover:to-pink-700"
+          className="rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-medium text-white shadow-lg transition-all hover:from-purple-700 hover:to-pink-700 hover:shadow-purple-500/20"
         >
           {step === "info" ? "Confirmar Agendamento" : "Próximo"}
         </motion.button>
