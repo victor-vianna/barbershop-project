@@ -1,15 +1,21 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { authMiddleware } from "@clerk/nextjs";
 
-const isProtectedRoute = createRouteMatcher([
-  "/dashboard(.*)",
-  "/forum(.*)",
-  "/secret(.*)",
-]);
+// Define as rotas protegidas usando o authMiddleware do Clerk
+export default authMiddleware({
+  // Rotas públicas (não precisam de autenticação)
+  publicRoutes: [
+    "/",
+    "/sign-in(.*)",
+    "/sign-up(.*)",
+    // Adicione outras rotas públicas conforme necessário
+  ],
 
-export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) await auth.protect();
+  // Ou alternativamente, você pode usar ignoredRoutes para especificar quais rotas ignorar
+  // e proteger todas as outras
+  // ignoredRoutes: ["/api/public", "/public-page"],
 });
 
+// Mantenha a configuração matcher conforme você já definiu
 export const config = {
   matcher: [
     // Skip Next.js internals and all static files, unless found in search params
