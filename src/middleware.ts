@@ -1,26 +1,14 @@
 import { authMiddleware } from "@clerk/nextjs";
 
-// Define as rotas protegidas usando o authMiddleware do Clerk
+// Rotas públicas
 export default authMiddleware({
-  // Rotas públicas (não precisam de autenticação)
-  publicRoutes: [
-    "/",
-    "/sign-in(.*)",
-    "/sign-up(.*)",
-    // Adicione outras rotas públicas conforme necessário
-  ],
-
-  // Ou alternativamente, você pode usar ignoredRoutes para especificar quais rotas ignorar
-  // e proteger todas as outras
-  // ignoredRoutes: ["/api/public", "/public-page"],
+  publicRoutes: ["/", "/servicos", "/sign-in(.*)", "/sign-up(.*)"],
 });
 
-// Mantenha a configuração matcher conforme você já definiu
+// IMPORTANTE: não deixe o middleware rodar para /api e /trpc
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
-    "/(api|trpc)(.*)",
+    // Rode apenas para rotas "páginas"
+    "/((?!_next|api|trpc|.*\\..*).*)",
   ],
 };
