@@ -1,21 +1,31 @@
-import React from 'react';
-import Image from 'next/image';
-import { formatDate } from '../utils/date';
-import Modal from './Modal';
-import { CalendarDays, Clock, Loader2, Scissors, User, Check, Calendar } from 'lucide-react';
+import React from "react";
+import Image from "next/image";
+import { formatDate } from "../utils/date";
+import Modal from "./Modal";
+import {
+  CalendarDays,
+  Clock,
+  Loader2,
+  Scissors,
+  User,
+  Check,
+  Calendar,
+} from "lucide-react";
 
 interface ConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
   service: {
+    id: string;
     name: string;
-    price: number;
-    duration: string;
+    price: string; // Agora vem como string do banco
+    durationMinutes: number; // Agora em minutos
   } | null;
   barber: {
+    id: string;
     name: string;
-    image: string;
+    photoUrl: string | null; // Mudou de 'image' para 'photoUrl'
   } | null;
   date: Date | null;
   timeSlot: string | null;
@@ -34,63 +44,62 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 }) => {
   if (!isOpen || !service || !barber || !date || !timeSlot) return null;
 
-  // Calcular horário de término (baseado na duração do serviço)
-  const calculateEndTime = (start: string, duration: string): string => {
-    const [hours = 0, minutes = 0] = start.split(':').map(Number);
-    let durationMinutes = 0;
-  
-    // Expressões regulares para capturar "Xh" e "Ymin"
-    const hourMatch = duration.match(/(\d+)\s*h/);
-    const minMatch = duration.match(/(\d+)\s*min/);
-  
-    const hoursParsed = parseInt(hourMatch?.[1] ?? '0');
-    const minutesParsed = parseInt(minMatch?.[1] ?? '0');
-  
-    durationMinutes += hoursParsed * 60 + minutesParsed;
-  
+  // Calcular horário de término baseado em minutos
+  const calculateEndTime = (start: string, durationMinutes: number): string => {
+    const [hours = 0, minutes = 0] = start.split(":").map(Number);
     const totalMinutes = hours * 60 + minutes + durationMinutes;
     const endHours = Math.floor(totalMinutes / 60);
     const endMinutes = totalMinutes % 60;
-  
-    return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+    return `${endHours.toString().padStart(2, "0")}:${endMinutes.toString().padStart(2, "0")}`;
   };
-  
-  const endTime = calculateEndTime(timeSlot, service.duration);
+
+  // Formatar duração para exibição
+  const formatDuration = (minutes: number): string => {
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+  };
+
+  const endTime = calculateEndTime(timeSlot, service.durationMinutes);
   const formattedDate = formatDate(date);
-  
+  const formattedDuration = formatDuration(service.durationMinutes);
+
   // Extrair dia e mês para exibição
   const day = date.getDate();
-  const month = date.toLocaleDateString('pt-BR', { month: 'short' });
-  
+  const month = date.toLocaleDateString("pt-BR", { month: "short" });
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Confirmar Agendamento">
       <div className="space-y-6 p-6">
         {/* Cabeçalho com bordas gradientes */}
-        <div className="relative rounded-xl bg-zinc-800 p-1 overflow-hidden">
+        <div className="relative overflow-hidden rounded-xl bg-zinc-800 p-1">
           <div className="absolute inset-0 bg-gradient-to-r from-purple-600/30 to-pink-600/30 opacity-40" />
           <div className="relative rounded-lg bg-zinc-900 p-4">
-            <h3 className="mb-4 text-center text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <h3 className="mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-center text-xl font-bold text-transparent">
               Detalhes do Agendamento
             </h3>
-            
+
             {/* Cartão do serviço */}
             <div className="mb-6 rounded-lg bg-zinc-800 p-4 shadow-md">
               <div className="mb-3 flex items-center justify-between border-b border-zinc-700 pb-3">
                 <div className="flex items-center space-x-2">
                   <Scissors className="h-5 w-5 text-purple-400" />
-                  <span className="font-semibold text-white">{service.name}</span>
+                  <span className="font-semibold text-white">
+                    {service.name}
+                  </span>
                 </div>
                 <span className="rounded-full bg-purple-900/50 px-3 py-1 text-sm font-bold text-purple-300">
-                  R$ {service.price.toFixed(2)}
+                  R$ {parseFloat(service.price).toFixed(2)}
                 </span>
               </div>
-              
+
               {/* Barbeiro */}
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="relative h-10 w-10 overflow-hidden rounded-full bg-zinc-700 flex items-center justify-center">
-                  {barber.image ? (
+              <div className="mb-4 flex items-center space-x-3">
+                <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-zinc-700">
+                  {barber.photoUrl ? (
                     <Image
-                      src={barber.image}
+                      src={barber.photoUrl}
                       alt={barber.name}
                       fill
                       className="object-cover"
@@ -104,7 +113,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                   <p className="font-medium text-white">{barber.name}</p>
                 </div>
               </div>
-              
+
               {/* Data e hora */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-start space-x-3">
@@ -117,7 +126,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                     <p className="font-medium text-white">{formattedDate}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start space-x-3">
                   <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-zinc-900">
                     <Clock className="h-6 w-6 text-purple-400" />
@@ -131,19 +140,22 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 </div>
               </div>
             </div>
-            
+
             {/* Resumo e duração */}
             <div className="mb-4 flex items-center justify-between rounded-lg bg-zinc-800/50 p-3">
               <div className="flex items-center space-x-2">
                 <Clock className="h-4 w-4 text-zinc-400" />
                 <span className="text-sm text-zinc-400">Duração estimada:</span>
               </div>
-              <span className="font-medium text-zinc-300">{service.duration}</span>
+              <span className="font-medium text-zinc-300">
+                {formattedDuration}
+              </span>
             </div>
-            
+
             {/* Informação de cancelamento */}
             <div className="mb-4 rounded-lg bg-zinc-800/30 p-3 text-center text-xs text-zinc-400">
-              O agendamento pode ser cancelado até 2 horas antes do horário marcado.
+              O agendamento pode ser cancelado até 2 horas antes do horário
+              marcado.
             </div>
           </div>
         </div>
@@ -159,7 +171,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3 font-medium text-white transition-all hover:from-purple-700 hover:to-pink-700 disabled:opacity-70 flex"
+            className="flex flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3 font-medium text-white transition-all hover:from-purple-700 hover:to-pink-700 disabled:opacity-70"
             disabled={isPending}
           >
             {isPending ? (

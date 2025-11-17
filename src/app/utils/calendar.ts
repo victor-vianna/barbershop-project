@@ -1,96 +1,161 @@
-interface Day {
+// ===============================
+// Tipagens
+// ===============================
+export interface Day {
   dayOfWeek: string;
   date: string;
-  fullDate: string;
+  fullDate: string; // formato "YYYY-MM-DD"
+  dateObj: Date; // Objeto Date completo
 }
 
-// Função para mostrar os dias da semana, tendo como base o calendário do dia atual
-export function getDaysOfWeek(): Day[] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Normaliza o horário para evitar problemas de comparação
-  
-  // Gera uma grade de calendário de dias iniciando no domingo mais próximo
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay()); // Ajusta para domingo
-  
-  const daysOfWeek = [];
-  for (let i = 0; i < 14; i++) { // Mostra 2 semanas para melhor visualização
-    const day = new Date(startOfWeek);
-    day.setDate(startOfWeek.getDate() + i);
-    
-    daysOfWeek.push({
-      dayOfWeek: day.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", ""),
-      date: `${day.getDate()} de ${day.toLocaleDateString("pt-BR", { month: "short" })}`,
-      fullDate: day.toISOString(),
-    });
-  }
-  return daysOfWeek;
-}
+// ===============================
+// Configurações de dias
+// ===============================
+export const getBarberWorkingDays = (): string[] => {
+  return ["seg", "ter", "qua", "qui", "sex", "sáb"];
+};
 
-// Função para obter os próximos N dias a partir de hoje
-export function getNextDays(n: number): Day[] {
+export const isWorkingDay = (date: Date): boolean => {
+  if (!date || isNaN(date.getTime())) return false;
+
+  const dayOfWeek = date
+    .toLocaleDateString("pt-BR", { weekday: "short" })
+    .replace(".", "")
+    .toLowerCase();
+
+  const workingDays = getBarberWorkingDays();
+
+  // Desabilitar datas passadas
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
-  // Ajusta para começar no domingo da semana atual para manter a consistência no calendário
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay()); // Ajusta para domingo
-  
-  const days = [];
 
-  // Gera n dias a partir do domingo atual
-  for (let i = 0; i < n; i++) {
-    const day = new Date(startOfWeek);
-    day.setDate(startOfWeek.getDate() + i);
-    
-    days.push({
-      dayOfWeek: day.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", ""),
-      date: `${day.getDate()} de ${day.toLocaleDateString("pt-BR", { month: "short" })}`,
-      fullDate: day.toISOString(),
-    });
+  if (date < today) return false;
+
+  return workingDays.includes(dayOfWeek);
+};
+
+// Nome formatado do mês
+export const getCurrentMonthName = (date: Date = new Date()): string => {
+  return date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+};
+
+// ===============================
+// Gerar dias do calendário (próximos 30 dias úteis)
+// ===============================
+export function getNextDays(n: number = 30): Day[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const days: Day[] = [];
+  let daysAdded = 0;
+  let currentDay = 0;
+
+  // Continua adicionando dias até ter n dias úteis
+  while (daysAdded < n) {
+    const day = new Date(today);
+    day.setDate(today.getDate() + currentDay);
+
+    // Verifica se é dia útil (não domingo)
+    if (isWorkingDay(day)) {
+      days.push({
+        dayOfWeek: day
+          .toLocaleDateString("pt-BR", { weekday: "short" })
+          .replace(".", ""),
+        date: `${day.getDate()} de ${day.toLocaleDateString("pt-BR", {
+          month: "short",
+        })}`,
+        fullDate: day.toISOString().split("T")[0]!, // YYYY-MM-DD
+        dateObj: new Date(day),
+      });
+      daysAdded++;
+    }
+
+    currentDay++;
   }
 
   return days;
 }
 
-// Função que mostra os dias de trabalho do barbeiro
-export function getBarberWorkingDays(): string[] {
-  return ["ter", "qua", "qui", "sex", "sáb"]; // Removi os pontos para consistência
-}
+// Função legada mantida para compatibilidade
+export const getDaysOfWeek = getNextDays(30);
 
-// Função para validar uma data selecionada para um cliente sobre ser um dia válido
-export function isWorkingDay(date: Date): boolean {
-  if (!date || isNaN(date.getTime())) {
-    return false;
-  }
-
-  const dayOfWeek = date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
-  const workingDays = getBarberWorkingDays();
-  
-  // Desabilita datas passadas
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  if (date < today) return false;
-  
-  return workingDays.includes(dayOfWeek);
-}
-
-// Nova função que ajuda a obter o nome do mês atual
-export function getCurrentMonthName(date: Date = new Date()): string {
-  return date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-}
-
-// utils/schedule.ts
-
+// ===============================
+// Sistema de horários
+// ===============================
 export const allPossibleTimes = [
-  "08:00", "09:00", "10:00", "11:00", "12:00",
-  "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"
+  "08:00",
+  "08:30",
+  "09:00",
+  "09:30",
+  "10:00",
+  "10:30",
+  "11:00",
+  "11:30",
+  "13:00",
+  "13:30",
+  "14:00",
+  "14:30",
+  "15:00",
+  "15:30",
+  "16:00",
+  "16:30",
+  "17:00",
+  "17:30",
+  "18:00",
+  "18:30",
+  "19:00",
+  "19:30",
+  "20:00",
 ];
 
-export async function getAvailableTimes(date: string, barberId: string) {
-  // Fetch horários agendados do banco (ajuste conforme sua API)
-  const response = await fetch(`/api/appointments?date=${date}&barberId=${barberId}`);
-  const bookedTimes = await response.json(); // ex: ["10:00", "14:00"]
+// Verifica horário comercial
+export const isWorkingHours = (time: string): boolean => {
+  const [hours] = time.split(":").map(Number);
+  return (hours ?? 0) >= 8 && (hours ?? 0) <= 20;
+};
 
-  return allPossibleTimes.filter(time => !bookedTimes.includes(time));
-}
+// Formata horário para HH:MM
+export const formatTime = (time: string): string => time.slice(0, 5);
+
+// Gera slots de horário com intervalo
+export const generateTimeSlots = (
+  startTime: string,
+  endTime: string,
+  intervalMinutes: number = 30,
+): string[] => {
+  const slots: string[] = [];
+  const [startHour, startMin] = startTime.split(":").map(Number);
+  const [endHour, endMin] = endTime.split(":").map(Number);
+
+  let currentMinutes = (startHour ?? 0) * 60 + (startMin ?? 0);
+  const endMinutes = (endHour ?? 0) * 60 + (endMin ?? 0);
+
+  while (currentMinutes <= endMinutes) {
+    const hours = Math.floor(currentMinutes / 60);
+    const minutes = currentMinutes % 60;
+    slots.push(
+      `${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}`,
+    );
+    currentMinutes += intervalMinutes;
+  }
+
+  return slots;
+};
+
+// Calcula horário final baseado em duração
+export const calculateEndTime = (
+  startTime: string,
+  durationMinutes: number,
+): string => {
+  const [hours, minutes] = startTime.split(":").map(Number);
+  const totalMinutes = (hours ?? 0) * 60 + (minutes ?? 0) + durationMinutes;
+
+  const endHours = Math.floor(totalMinutes / 60);
+  const endMinutes = totalMinutes % 60;
+
+  return `${endHours.toString().padStart(2, "0")}:${endMinutes
+    .toString()
+    .padStart(2, "0")}`;
+};

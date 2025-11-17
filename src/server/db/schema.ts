@@ -1,57 +1,87 @@
-// Example model schema from the Drizzle docs
-// https://orm.drizzle.team/docs/sql-schema-declaration
-
-import { sql } from "drizzle-orm";
 import {
-  index,
+  pgTable,
+  uuid,
+  text,
   integer,
-  pgTableCreator,
   timestamp,
-  varchar,
   date,
   time,
+  boolean,
   numeric,
+  primaryKey,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-/**
- * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
- * database instance for multiple projects.
- *
- * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
- */
-export const createTable = pgTableCreator((name) => `barbershop-project_${name}`);
+export const services = pgTable("services", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  durationMinutes: integer("duration_minutes").notNull(),
+  price: numeric("price", { precision: 10, scale: 2 }).notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
- // tabela de agendamentos
- export const appointments = createTable("appointment", {
-  user_id: varchar("user_id", { length: 255 }).notNull(),
-  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
-  client_name: varchar("client_name", { length: 255 }).notNull(),
-  service: varchar("service", { length: 255 }).notNull(),
-  date: date("date").notNull(),
-  time: time("time").notNull(),
-  status: varchar("status", { length: 50 }).default("pendente").notNull(),
-  barber_id: varchar("barber_id").notNull(),
-  price: varchar("price", { length: 50 }).notNull(),
-  phone: varchar("phone", { length: 20 }).notNull(),
-  created_at: timestamp("created_at", { withTimezone: true })
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull()
- })
+export const barbers = pgTable("barbers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  photoUrl: text("photo_url"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
-
-export const posts = createTable(
-  "post",
+export const barberServices = pgTable(
+  "barber_services",
   {
-    id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
-    name: varchar("name", { length: 256 }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
-      () => new Date()
-    ),
+    barberId: uuid("barber_id")
+      .notNull()
+      .references(() => barbers.id, { onDelete: "cascade" }),
+    serviceId: uuid("service_id")
+      .notNull()
+      .references(() => services.id, { onDelete: "cascade" }),
   },
-  (example) => ({
-    nameIndex: index("name_idx").on(example.name),
-  })
+  (table) => ({
+    pk: primaryKey({ columns: [table.barberId, table.serviceId] }),
+  }),
+);
+
+export const customers = pgTable("customers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  phone: text("phone").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const appointments = pgTable(
+  "appointments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    customerId: uuid("customer_id")
+      .notNull()
+      .references(() => customers.id, { onDelete: "cascade" }),
+
+    barberId: uuid("barber_id")
+      .notNull()
+      .references(() => barbers.id, { onDelete: "cascade" }),
+
+    serviceId: uuid("service_id")
+      .notNull()
+      .references(() => services.id, { onDelete: "cascade" }),
+
+    date: date("date").notNull(),
+    time: time("time").notNull(),
+
+    status: text("status").default("pending").notNull(),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+
+  (table) => ({
+    // <-- AQUI ESTÁ O UNIQUE CORRETO
+    uniqueAppointment: uniqueIndex("unique_appointment").on(
+      table.barberId,
+      table.date,
+      table.time,
+    ),
+  }),
 );

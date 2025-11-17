@@ -1,10 +1,11 @@
 import React from "react";
-import Services from "~/app/_components/Services";
+import ServiceSelection from "~/app/_components/ServiceSelection";
+import Services from "~/app/_components/ServiceSelection";
 
 function page() {
   return (
     <div>
-      <Services />
+      <ServiceSelection />
     </div>
   );
 }

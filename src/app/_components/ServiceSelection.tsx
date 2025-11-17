@@ -1,27 +1,27 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
-import { CircleArrowLeft } from 'lucide-react';
-import { toast } from '~/hooks/use-toast';
-import Modal from '~/app/_components/Modal';
-import BarberSelection from '~/app/_components/BarberSelection';
-import { api } from '~/trpc/react';
-import ConfirmationModal from './ConfimationModal';
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { CircleArrowLeft } from "lucide-react";
+import { toast } from "~/hooks/use-toast";
+import Modal from "~/app/_components/Modal";
+import BarberSelection from "~/app/_components/BarberSelection";
+import { api } from "~/trpc/react";
+import ConfirmationModal from "./ConfimationModal";
 
 interface Service {
   id: string;
   name: string;
-  description: string;
-  price: number;
-  duration: string;
+  description: string | null;
+  price: string;
+  durationMinutes: number;
 }
 
 interface Barber {
   id: string;
   name: string;
-  image: string;
+  photoUrl: string | null;
 }
 
 const ServiceSelection = () => {
@@ -34,9 +34,13 @@ const ServiceSelection = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
-  const [clientName, setClientName] = useState<string>('');
-  const [phoneNumber, setPhoneNumber] = useState<string>('');
+  const [clientName, setClientName] = useState<string>("");
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+
+  // Buscar serviços do banco de dados
+  const { data: services = [], isLoading: loadingServices } =
+    api.appointments.listServices.useQuery();
 
   const isValidPhoneNumber = (phone: string) => {
     const phoneRegex = /^(\(\d{2}\)\s?)?\d{5}[-\s]?\d{4}$|^\d{11}$/;
@@ -44,33 +48,38 @@ const ServiceSelection = () => {
   };
 
   const formatPhoneNumber = (phone: string) => {
-    return phone.replace(/\D/g, '');
+    return phone.replace(/\D/g, "");
   };
 
   const createAppointment = api.appointments.create.useMutation({
     onSuccess: () => {
       toast({
-        title: 'Agendamento confirmado!',
-        description: 'Seu horário foi agendado com sucesso.',
-        variant: 'default',
+        title: "Agendamento confirmado!",
+        description: "Seu horário foi agendado com sucesso.",
+        variant: "default",
       });
       setIsConfirmationModalOpen(false);
-      router.push('/meus-agendamentos');
+      router.push("/meus-agendamentos");
     },
     onError: (error) => {
-      if (error.message?.includes('ocupado') || error.message?.includes('indisponível')) {
+      if (
+        error.message?.includes("ocupado") ||
+        error.message?.includes("indisponível")
+      ) {
         toast({
-          title: 'Horário indisponível',
-          description: 'Este horário já está ocupado. Por favor, escolha outro horário.',
-          variant: 'destructive',
+          title: "Horário indisponível",
+          description:
+            "Este horário já está ocupado. Por favor, escolha outro horário.",
+          variant: "destructive",
         });
         setIsConfirmationModalOpen(false);
         setIsSchedulingModalOpen(true);
       } else {
         toast({
-          title: 'Erro ao agendar',
-          description: error.message || 'Ocorreu um erro ao confirmar seu agendamento.',
-          variant: 'destructive',
+          title: "Erro ao agendar",
+          description:
+            error.message || "Ocorreu um erro ao confirmar seu agendamento.",
+          variant: "destructive",
         });
       }
       setIsCheckingAvailability(false);
@@ -78,11 +87,19 @@ const ServiceSelection = () => {
   });
 
   const proceedWithAppointment = () => {
-    if (!selectedService || !selectedBarber || !selectedDate || !selectedTimeSlot || !clientName || !phoneNumber || !user?.id) {
+    if (
+      !selectedService ||
+      !selectedBarber ||
+      !selectedDate ||
+      !selectedTimeSlot ||
+      !clientName ||
+      !phoneNumber ||
+      !user?.id
+    ) {
       toast({
-        title: 'Informações incompletas',
-        description: 'Todos os campos precisam estar preenchidos.',
-        variant: 'destructive',
+        title: "Informações incompletas",
+        description: "Todos os campos precisam estar preenchidos.",
+        variant: "destructive",
       });
       return;
     }
@@ -91,22 +108,22 @@ const ServiceSelection = () => {
 
     createAppointment.mutate({
       client_name: clientName,
-      service: selectedService.id,
+      service: selectedService.id, // Agora é UUID
       date: selectedDate.toISOString(),
       time: selectedTimeSlot,
       phone: formattedPhone,
-      barber_id: selectedBarber.id,
-      user_id: user.id, // <-- CLERK USER ID
-      price: String(selectedService.price),
+      barber_id: selectedBarber.id, // UUID do barbeiro
+      user_id: user.id,
+      price: selectedService.price,
     });
   };
 
   const handleConfirmAppointment = async () => {
     if (!isValidPhoneNumber(phoneNumber)) {
       toast({
-        title: 'Número de telefone inválido',
-        description: 'Formato válido: (99) 99999-9999 ou 99999999999.',
-        variant: 'destructive',
+        title: "Número de telefone inválido",
+        description: "Formato válido: (99) 99999-9999 ou 99999999999.",
+        variant: "destructive",
       });
       return;
     }
@@ -115,16 +132,17 @@ const ServiceSelection = () => {
     proceedWithAppointment();
   };
 
-  const handleBarberDateTimeConfirm = (barberId: string, date: Date, time: string) => {
+  const handleBarberDateTimeConfirm = (
+    barberId: string,
+    barberName: string,
+    barberPhoto: string | null,
+    date: Date,
+    time: string,
+  ) => {
     const barberData = {
       id: barberId,
-      name: barberId === '1' ? 'Igor' : barberId === '2' ? 'Jhélita' : 'Eliel',
-      image:
-        barberId === '1'
-          ? '/images/barber-igor.jpg'
-          : barberId === '2'
-          ? '/images/barber-jhelita.jpeg'
-          : '/images/barber-eliel.jpeg',
+      name: barberName,
+      photoUrl: barberPhoto,
     };
 
     setSelectedBarber(barberData);
@@ -134,50 +152,15 @@ const ServiceSelection = () => {
     setIsConfirmationModalOpen(true);
   };
 
-  const services: Service[] = [
-    {
-      id: 'corte',
-      name: 'Corte de Cabelo',
-      description: 'Corte tradicional ou moderno com acabamento perfeito e produtos de qualidade',
-      price: 40.0,
-      duration: '45 min',
-    },
-    {
-      id: 'barba',
-      name: 'Barba',
-      description: 'Modelagem completa da barba com toalha quente e produtos especiais',
-      price: 30.0,
-      duration: '20 min',
-    },
-    {
-      id: 'corte-barba',
-      name: 'Corte + Barba',
-      description: 'Combinação de corte e barba com desconto especial',
-      price: 60.0,
-      duration: '60 min',
-    },
-    {
-      id: 'corte-sobrancelha',
-      name: 'Corte + Sobrancelha',
-      description: 'Combinação de corte e design de sobrancelha com desconto',
-      price: 45.0,
-      duration: '50 min',
-    },
-    {
-      id: 'sobrancelha',
-      name: 'Sobrancelha',
-      description: 'Design da sobrancelha com a navalha',
-      price: 10.0,
-      duration: '5 min',
-    },
-    {
-      id: 'pezinho',
-      name: 'Pezinho',
-      description: 'Acabamento na nuca e laterais para manter o visual alinhado',
-      price: 10.0,
-      duration: '5 min',
-    },
-  ];
+  if (loadingServices) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800 text-white">
+        <div className="container mx-auto px-4 py-16">
+          <p className="text-center">Carregando serviços...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-zinc-900 to-zinc-800 text-white">
@@ -191,16 +174,22 @@ const ServiceSelection = () => {
             <div
               key={service.id}
               onClick={() => setSelectedService(service)}
-              className={`overflow-hidden rounded-xl bg-zinc-800 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl ${selectedService?.id === service.id ? 'scale-105 border-4 border-purple-500 shadow-2xl' : ''} cursor-pointer`}
+              className={`overflow-hidden rounded-xl bg-zinc-800 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl ${selectedService?.id === service.id ? "scale-105 border-4 border-purple-500 shadow-2xl" : ""} cursor-pointer`}
             >
               <div className="flex flex-col p-6">
                 <div>
-                  <h2 className="mb-3 text-2xl font-bold text-purple-400">{service.name}</h2>
-                  <p className="mb-4 text-zinc-400">{service.description}</p>
+                  <h2 className="mb-3 text-2xl font-bold text-purple-400">
+                    {service.name}
+                  </h2>
+                  <p className="mb-4 text-zinc-400">
+                    {service.description || "Sem descrição"}
+                  </p>
                 </div>
                 <div className="mt-auto flex justify-between text-lg text-zinc-300">
-                  <span>⏱ {service.duration}</span>
-                  <span className="font-semibold text-purple-400">R$ {service.price.toFixed(2)}</span>
+                  <span>⏱ {service.durationMinutes} min</span>
+                  <span className="font-semibold text-purple-400">
+                    R$ {parseFloat(service.price).toFixed(2)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -219,7 +208,10 @@ const ServiceSelection = () => {
         )}
 
         <div className="mt-4 flex justify-start">
-          <button onClick={() => router.push('/')} className="p-4 text-white transition-colors hover:text-purple-400">
+          <button
+            onClick={() => router.push("/")}
+            className="p-4 text-white transition-colors hover:text-purple-400"
+          >
             <CircleArrowLeft size={48} />
           </button>
         </div>
@@ -230,13 +222,14 @@ const ServiceSelection = () => {
         <Modal
           isOpen={isSchedulingModalOpen}
           onClose={() => setIsSchedulingModalOpen(false)}
-          title={`Agendar ${selectedService?.name || ''}`}
+          title={`Agendar ${selectedService?.name || ""}`}
         >
           <BarberSelection
             onClose={() => setIsSchedulingModalOpen(false)}
             onConfirm={handleBarberDateTimeConfirm}
             setClientName={setClientName}
             setPhoneNumber={setPhoneNumber}
+            selectedService={selectedService?.name}
           />
         </Modal>
       )}

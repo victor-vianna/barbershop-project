@@ -6,11 +6,11 @@ import { api } from "~/trpc/react";
 import { toast } from "~/hooks/use-toast";
 import Head from "next/head";
 import Link from "next/link";
-import { toZonedTime, format } from "date-fns-tz";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface Appointment {
-  id: string | number;
+  id: string;
   date: string;
   time: string;
   service: string;
@@ -18,31 +18,23 @@ interface Appointment {
   status: string;
 }
 
-const barberNames: Record<string, string> = {
-  "1": "Igor",
-  "2": "Jhélita",
-  "3": "Eliel",
-};
-
 const formatDate = (dateStr: string) => {
-  const timeZone = "America/Sao_Paulo"; // Fuso fixo Brasil
-
-  const dateWithoutTime = new Date(dateStr + "T12:00:00");
-  // Forçamos para meio-dia para evitar qualquer shift de UTC
-
-  const zonedDate = toZonedTime(dateWithoutTime, timeZone);
-
-  return format(zonedDate, "dd/MM/yyyy", { locale: ptBR });
+  try {
+    const date = new Date(dateStr + "T12:00:00");
+    return format(date, "dd/MM/yyyy", { locale: ptBR });
+  } catch (error) {
+    return dateStr;
+  }
 };
 
-const MeusAgendamentos = () => {
+const MyAppointments = () => {
   const { user } = useUser();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   const { data, isLoading, error, refetch } = api.appointments.list.useQuery(
     {
       user_id: user?.id || "",
-      status: "todos", // ou "pendente", etc
+      status: "todos",
     },
     { enabled: !!user?.id },
   );
@@ -136,38 +128,48 @@ const MeusAgendamentos = () => {
                     <td className="px-4 py-2">
                       {formatDate(appointment.date)}
                     </td>
-                    <td className="px-4 py-2">{appointment.time}</td>
+                    <td className="px-4 py-2">
+                      {appointment.time.substring(0, 5)}
+                    </td>
                     <td className="px-4 py-2">{appointment.service}</td>
                     <td className="px-4 py-2">
-                      {barberNames[appointment.barber_id] || "Desconhecido"}
+                      {/* Exibir nome do barbeiro se disponível */}
+                      {appointment.barber_id}
                     </td>
                     <td className="px-4 py-2">
                       <span
                         className={`rounded px-2 py-1 text-xs ${
-                          appointment.status === "cancelado"
+                          appointment.status === "cancelado" ||
+                          appointment.status === "cancelled"
                             ? "bg-red-600"
-                            : appointment.status === "pendente"
+                            : appointment.status === "pendente" ||
+                                appointment.status === "pending"
                               ? "bg-yellow-500"
                               : "bg-green-500"
                         }`}
                       >
-                        {appointment.status}
+                        {appointment.status === "pending"
+                          ? "Pendente"
+                          : appointment.status === "cancelled"
+                            ? "Cancelado"
+                            : appointment.status}
                       </span>
                     </td>
                     <td className="px-4 py-2">
-                      {appointment.status !== "cancelado" && (
-                        <button
-                          onClick={() =>
-                            cancelar({
-                              id: Number(appointment.id),
-                              status: "cancelado",
-                            })
-                          }
-                          className="rounded bg-red-600 px-3 py-1 transition-colors hover:bg-red-700"
-                        >
-                          Cancelar
-                        </button>
-                      )}
+                      {appointment.status !== "cancelado" &&
+                        appointment.status !== "cancelled" && (
+                          <button
+                            onClick={() =>
+                              cancelar({
+                                id: appointment.id,
+                                status: "cancelled",
+                              })
+                            }
+                            className="rounded bg-red-600 px-3 py-1 transition-colors hover:bg-red-700"
+                          >
+                            Cancelar
+                          </button>
+                        )}
                     </td>
                   </tr>
                 ))}
@@ -181,12 +183,11 @@ const MeusAgendamentos = () => {
         )}
       </main>
 
-      {/* Footer */}
       <footer className="mt-10 bg-black py-6">
         <div className="container mx-auto px-4 text-center">
           <p>
             &copy; {new Date().getFullYear()} Igor Barber - Página de
-            Agendamentos do Cliente{" "}
+            Agendamentos do Cliente
           </p>
         </div>
       </footer>
@@ -194,4 +195,4 @@ const MeusAgendamentos = () => {
   );
 };
 
-export default MeusAgendamentos;
+export default MyAppointments;

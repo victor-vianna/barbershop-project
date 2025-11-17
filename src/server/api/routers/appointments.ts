@@ -1,169 +1,222 @@
 import { z } from "zod";
-import { publicProcedure, createTRPCRouter } from "~/server/api/trpc";
-import { db } from "~/server/db";
-import { appointments } from "~/server/db/schema";
-import { sql, eq, and, not } from "drizzle-orm";
+import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  appointments,
+  services,
+  barbers,
+  customers,
+  barberServices,
+} from "~/server/db/schema";
+import { eq, and } from "drizzle-orm";
 
 export const appointmentsRouter = createTRPCRouter({
-  create: publicProcedure
-    .input(
-      z.object({
-        client_name: z.string().min(1),
-        service: z.string().min(1),
-        date: z.string().min(1),
-        time: z.string().min(1),
-        phone: z.string().min(1),
-        barber_id: z.string().min(1),
-        user_id: z.string().min(1),
-        price: z.string().min(1),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      // Verificar disponibilidade antes de salvar
-      const formattedDate = new Date(input.date).toISOString().split("T")[0];
+  // Listar todos os serviços
+  listServices: publicProcedure.query(async ({ ctx }) => {
+    return await ctx.db.select().from(services);
+  }),
 
-      const existingAppointments = await db
-        .select()
-        .from(appointments)
-        .where(
-          and(
-            sql`DATE(${appointments.date}) = ${formattedDate}`,
-            eq(appointments.time, input.time),
-            eq(appointments.barber_id, input.barber_id),
-            not(eq(appointments.status, "cancelado")),
-          ),
-        );
+  // Listar todos os barbeiros ativos
+  listBarbers: publicProcedure.query(async ({ ctx }) => {
+    return await ctx.db.select().from(barbers).where(eq(barbers.active, true));
+  }),
 
-      if (existingAppointments.length > 0) {
-        throw new Error(
-          "Este horário já está ocupado. Por favor, escolha outro horário.",
-        );
-      }
-
-      const res = await db
-        .insert(appointments)
-        .values({ ...input, status: "pendente" });
-      return { success: true, res };
-    }),
-
-  checkAvailability: publicProcedure
-    .input(
-      z.object({
-        date: z.string().min(1),
-        time: z.string().min(1),
-        barberId: z.string().min(1),
-      }),
-    )
-    .query(async ({ input }) => {
-      const { date, time, barberId } = input;
-
-      // Formatamos a data para comparar apenas o dia (YYYY-MM-DD)
-      const formattedDate = new Date(date).toISOString().split("T")[0];
-
-      const existingAppointments = await db
-        .select()
-        .from(appointments)
-        .where(
-          and(
-            sql`DATE(${appointments.date}) = ${formattedDate}`,
-            eq(appointments.time, time),
-            eq(appointments.barber_id, barberId),
-            not(eq(appointments.status, "cancelado")),
-          ),
-        );
-
-      return { available: existingAppointments.length === 0 };
-    }),
-
-  list: publicProcedure
-    .input(
-      z
-        .object({
-          user_id: z.string().optional(),
-          status: z
-            .enum(["todos", "pendente", "concluido", "cancelado"])
-            .optional()
-            .default("todos"),
-          startDate: z.string().optional(),
-          endDate: z.string().optional(),
-          barberId: z.string().optional(),
-        })
-        .optional(),
-    )
-    .query(async ({ input = {} }) => {
-      const { status = "todos", startDate, endDate, barberId, user_id } = input;
-
-      const conditions = [];
-
-      if (status !== "todos") {
-        conditions.push(eq(appointments.status, status));
-      }
-
-      if (startDate) {
-        conditions.push(sql`DATE(${appointments.date}) >= ${startDate}`);
-      }
-
-      if (endDate) {
-        conditions.push(sql`DATE(${appointments.date}) <= ${endDate}`);
-      }
-
-      if (barberId) {
-        conditions.push(eq(appointments.barber_id, barberId));
-      }
-      if (user_id) {
-        conditions.push(eq(appointments.user_id, user_id));
-      }
-
-      const query = db
-        .select()
-        .from(appointments)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(appointments.date, appointments.time);
-
-      const results = await query;
-      return results; // ou com tipagem: return results as Appointment[];
-    }),
-
+  // Obter horários ocupados para um barbeiro em uma data específica
   getBookedTimes: publicProcedure
-    .input(z.object({ date: z.string().min(1), barberId: z.string().min(1) }))
-    .query(async ({ input }) => {
-      const { date, barberId } = input;
-      const formattedDate = new Date(date).toISOString().split("T")[0];
-
-      const bookedTimes = await db
+    .input(
+      z.object({
+        date: z.string(), // formato: "YYYY-MM-DD"
+        barberId: z.string().uuid(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const bookedAppointments = await ctx.db
         .select({ time: appointments.time })
         .from(appointments)
         .where(
           and(
-            sql`DATE(${appointments.date}) = ${formattedDate}`,
-            eq(appointments.barber_id, barberId),
-            not(eq(appointments.status, "cancelado")),
+            eq(appointments.barberId, input.barberId),
+            eq(appointments.date, input.date),
+            // Não incluir agendamentos cancelados
+            eq(appointments.status, "pending"),
           ),
         );
 
-      return bookedTimes.map((b) => b.time); // apenas array de horários
+      return bookedAppointments.map((a) => a.time);
     }),
 
+  // Criar novo agendamento
+  create: publicProcedure
+    .input(
+      z.object({
+        client_name: z.string().min(1),
+        phone: z.string().min(10),
+        service: z.string().uuid(), // UUID do serviço
+        date: z.string(), // ISO string
+        time: z.string(), // formato "HH:MM"
+        barber_id: z.string().uuid(),
+        user_id: z.string(), // Clerk user ID
+        price: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // 1. Extrair apenas a data (YYYY-MM-DD)
+      const dateOnly = input.date.split("T")[0];
+
+      // 2. Verificar se o horário já está ocupado
+      const existing = await ctx.db
+        .select()
+        .from(appointments)
+        .where(
+          and(
+            eq(appointments.barberId, input.barber_id),
+            eq(appointments.date, dateOnly!),
+            eq(appointments.time, input.time),
+            eq(appointments.status, "pending"),
+          ),
+        );
+
+      if (existing.length > 0) {
+        throw new Error("Este horário já está ocupado");
+      }
+
+      // 3. Criar ou buscar cliente
+      let customer = await ctx.db
+        .select()
+        .from(customers)
+        .where(eq(customers.phone, input.phone))
+        .limit(1);
+
+      let customerId: string;
+
+      if (customer.length === 0) {
+        // Criar novo cliente
+        const newCustomer = await ctx.db
+          .insert(customers)
+          .values({
+            name: input.client_name,
+            phone: input.phone,
+          })
+          .returning();
+
+        customerId = newCustomer[0]!.id;
+      } else {
+        customerId = customer[0]!.id;
+      }
+
+      // 4. Criar agendamento
+      const appointment = await ctx.db
+        .insert(appointments)
+        .values({
+          customerId: customerId,
+          barberId: input.barber_id,
+          serviceId: input.service,
+          date: dateOnly!,
+          time: input.time,
+          status: "pending",
+        })
+        .returning();
+
+      return appointment[0];
+    }),
+
+  // Listar agendamentos do usuário
+  list: publicProcedure
+    .input(
+      z.object({
+        user_id: z.string(),
+        status: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Buscar cliente pelo phone vinculado ao user_id (você precisará ajustar isso)
+      // Por enquanto, vamos buscar todos os agendamentos
+      const allAppointments = await ctx.db
+        .select({
+          id: appointments.id,
+          date: appointments.date,
+          time: appointments.time,
+          status: appointments.status,
+          barber: {
+            id: barbers.id,
+            name: barbers.name,
+          },
+          service: {
+            id: services.id,
+            name: services.name,
+          },
+          customer: {
+            name: customers.name,
+            phone: customers.phone,
+          },
+        })
+        .from(appointments)
+        .innerJoin(barbers, eq(appointments.barberId, barbers.id))
+        .innerJoin(services, eq(appointments.serviceId, services.id))
+        .innerJoin(customers, eq(appointments.customerId, customers.id))
+        .orderBy(appointments.date);
+
+      // Mapear para o formato esperado pelo frontend
+      return allAppointments.map((a) => ({
+        id: a.id,
+        date: a.date,
+        time: a.time,
+        service: a.service.name,
+        barber_id: a.barber.name, // <-- Agora retorna o NOME do barbeiro
+        status: a.status,
+      }));
+    }),
+
+  // Atualizar status do agendamento
   updateStatus: publicProcedure
     .input(
       z.object({
-        id: z.number(),
-        status: z.enum(["pendente", "confirmado", "cancelado"]),
+        id: z.string().uuid(),
+        status: z.string(),
       }),
     )
-    .mutation(async ({ input }) => {
-      try {
-        const { id, status } = input;
+    .mutation(async ({ ctx, input }) => {
+      const updated = await ctx.db
+        .update(appointments)
+        .set({ status: input.status })
+        .where(eq(appointments.id, input.id))
+        .returning();
 
-        await db
-          .update(appointments)
-          .set({ status })
-          .where(eq(appointments.id, id));
+      return updated[0];
+    }),
 
-        return { success: true };
-      } catch (error) {
-        console.error("Erro ao atualizar status:", error);
-        throw new Error("Erro interno ao atualizar status");
-      }
+  // Obter detalhes de um agendamento específico
+  getById: publicProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const appointment = await ctx.db
+        .select({
+          id: appointments.id,
+          date: appointments.date,
+          time: appointments.time,
+          status: appointments.status,
+          barber: {
+            id: barbers.id,
+            name: barbers.name,
+            photoUrl: barbers.photoUrl,
+          },
+          service: {
+            id: services.id,
+            name: services.name,
+            price: services.price,
+            durationMinutes: services.durationMinutes,
+          },
+          customer: {
+            name: customers.name,
+            phone: customers.phone,
+          },
+        })
+        .from(appointments)
+        .innerJoin(barbers, eq(appointments.barberId, barbers.id))
+        .innerJoin(services, eq(appointments.serviceId, services.id))
+        .innerJoin(customers, eq(appointments.customerId, customers.id))
+        .where(eq(appointments.id, input.id))
+        .limit(1);
+
+      return appointment[0] || null;
     }),
 });

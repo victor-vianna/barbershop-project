@@ -1,1 +1,0 @@
-ALTER TABLE "barbershop-project_appointment" ADD COLUMN "barber_id" varchar NOT NULL;

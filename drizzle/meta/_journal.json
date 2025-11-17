@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1744944130113,
-      "tag": "0000_secret_jetstream",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1745086464883,
-      "tag": "0001_greedy_karen_page",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1745256298129,
-      "tag": "0002_tense_skullbuster",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1762819967868,
-      "tag": "0003_tough_doomsday",
+      "when": 1763408416168,
+      "tag": "0000_moaning_screwball",
       "breakpoints": true
     }
   ]
