@@ -7,8 +7,8 @@ const publicRoutes = [
   "/servicos",
   "/sign-in",
   "/sign-up",
-  "/api/webhooks",
-  "/api/trpc",
+  "/api/webhooks(.*)", // Adiciona wildcard
+  "/api/trpc(.*)", // ⚠️ MUDANÇA AQUI: adiciona (.*)
 ];
 
 function isPublic(req: Request) {
@@ -16,7 +16,7 @@ function isPublic(req: Request) {
   return publicRoutes.some((route) => pathname.startsWith(route));
 }
 
-const adminRoutes = ["/admin/dashboard", "/dashboard", "/admin"];
+const adminRoutes = ["/admin/dashboard"];
 
 function isAdminRoute(req: Request) {
   const pathname = new URL(req.url).pathname;
@@ -37,7 +37,6 @@ export default authMiddleware({
     }
 
     if (isAdminRoute(req)) {
-      // Lê role do publicMetadata com type assertion
       const role = (sessionClaims?.publicMetadata as { role?: string })?.role;
 
       if (role !== "admin") {
