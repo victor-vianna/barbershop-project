@@ -1,14 +1,21 @@
 import { authMiddleware } from "@clerk/nextjs";
 
-// Rotas públicas
 export default authMiddleware({
-  publicRoutes: ["/", "/servicos", "/sign-in(.*)", "/sign-up(.*)"],
+  // Rotas públicas
+  publicRoutes: [
+    "/",
+    "/servicos",
+    "/sign-in(.*)",
+    "/sign-up(.*)",
+    // Sua rota pública do TRPC
+    "/api/trpc/appointments.listServices",
+    "/api/trpc/(.*)", // importante permitir para consultas públicas
+  ],
 });
 
-// IMPORTANTE: não deixe o middleware rodar para /api e /trpc
 export const config = {
   matcher: [
-    // Rode apenas para rotas "páginas"
-    "/((?!_next|api|trpc|.*\\..*).*)",
+    "/((?!_next|.*\\..*).*)",
+    "/api/(.*)", // 🔥 agora o middleware roda também na API
   ],
 };
