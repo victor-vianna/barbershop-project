@@ -119,8 +119,44 @@ export const appointmentsRouter = createTRPCRouter({
       return appointment[0];
     }),
 
-  // Listar agendamentos do usuário
-  list: publicProcedure
+  // ✅ NOVA: Listar TODOS os agendamentos (para admin)
+  list: publicProcedure.query(async ({ ctx }) => {
+    const allAppointments = await ctx.db
+      .select({
+        id: appointments.id,
+        date: appointments.date,
+        time: appointments.time,
+        status: appointments.status,
+        barberId: barbers.id,
+        barberName: barbers.name,
+        serviceName: services.name,
+        servicePrice: services.price,
+        customerName: customers.name,
+        customerPhone: customers.phone,
+      })
+      .from(appointments)
+      .innerJoin(barbers, eq(appointments.barberId, barbers.id))
+      .innerJoin(services, eq(appointments.serviceId, services.id))
+      .innerJoin(customers, eq(appointments.customerId, customers.id))
+      .orderBy(appointments.date);
+
+    // Mapear para o formato esperado pelo AdminDashboard
+    return allAppointments.map((a) => ({
+      id: a.id,
+      date: a.date,
+      time: a.time,
+      status: a.status,
+      barber_id: a.barberId,
+      name: a.barberName, // nome do barbeiro
+      service: a.serviceName,
+      price: a.servicePrice,
+      client_name: a.customerName,
+      phone: a.customerPhone,
+    }));
+  }),
+
+  // Listar agendamentos de um usuário específico
+  listByUser: publicProcedure
     .input(
       z.object({
         user_id: z.string(),
@@ -128,8 +164,7 @@ export const appointmentsRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      // Buscar cliente pelo phone vinculado ao user_id (você precisará ajustar isso)
-      // Por enquanto, vamos buscar todos os agendamentos
+      // Buscar cliente pelo phone vinculado ao user_id
       const allAppointments = await ctx.db
         .select({
           id: appointments.id,
@@ -155,13 +190,12 @@ export const appointmentsRouter = createTRPCRouter({
         .innerJoin(customers, eq(appointments.customerId, customers.id))
         .orderBy(appointments.date);
 
-      // Mapear para o formato esperado pelo frontend
       return allAppointments.map((a) => ({
         id: a.id,
         date: a.date,
         time: a.time,
         service: a.service.name,
-        barber_id: a.barber.name, // <-- Agora retorna o NOME do barbeiro
+        barber_id: a.barber.name,
         status: a.status,
       }));
     }),
@@ -170,15 +204,15 @@ export const appointmentsRouter = createTRPCRouter({
   updateStatus: publicProcedure
     .input(
       z.object({
-        id: z.string().uuid(),
-        status: z.string(),
+        id: z.number(), // ← Mudei para number baseado no seu AdminDashboard
+        status: z.enum(["confirmado", "cancelado"]),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const updated = await ctx.db
         .update(appointments)
         .set({ status: input.status })
-        .where(eq(appointments.id, input.id))
+        .where(eq(appointments.id, input.id.toString()))
         .returning();
 
       return updated[0];

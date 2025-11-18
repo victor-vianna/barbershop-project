@@ -12,6 +12,14 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+// Tabela de usuários com roles
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  clerkUserId: text("clerk_user_id").notNull().unique(), // ID do Clerk
+  role: text("role").notNull().default("customer"), // 'admin' ou 'customer'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const services = pgTable("services", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
@@ -46,6 +54,7 @@ export const barberServices = pgTable(
 
 export const customers = pgTable("customers", {
   id: uuid("id").defaultRandom().primaryKey(),
+  clerkUserId: text("clerk_user_id").unique(), // Opcional: liga ao Clerk se usuário estiver logado
   name: text("name").notNull(),
   phone: text("phone").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

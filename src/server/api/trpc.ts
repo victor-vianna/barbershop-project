@@ -1,33 +1,29 @@
 /**
- * YOU PROBABLY DON'T NEED TO EDIT THIS FILE, UNLESS:
- * 1. You want to modify request context (see Part 1).
- * 2. You want to create a new middleware or type of procedure (see Part 3).
- *
- * TL;DR - This is where all the tRPC server stuff is created and plugged in. The pieces you will
- * need to use are documented accordingly near the end.
- */
-import { auth } from "@clerk/nextjs/server";
-import { initTRPC } from "@trpc/server";
-import { headers } from "next/headers";
-import superjson from "superjson";
-import { ZodError } from "zod";
-
-import { db } from "~/server/db";
-
-/**
  * 1. CONTEXT
  *
  * This section defines the "contexts" that are available in the backend API.
- *
- * These allow you to access things when processing a request, like the database, the session, etc.
- *
- * This helper generates the "internals" for a tRPC context. The API handler and RSC clients each
- * wrap this and provides the required context.
- *
- * @see https://trpc.io/docs/server/context
  */
-export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const { userId, sessionId } = auth();
+import { getAuth } from "@clerk/nextjs/server";
+import { db } from "~/server/db";
+
+/**
+ * Creates context for an incoming request
+ * @link https://trpc.io/docs/context
+ */
+export const createTRPCContext = async (opts: {
+  headers: Headers;
+  req?: Request;
+}) => {
+  // Use getAuth() que aceita request object para evitar erro de headers
+  let userId: string | null = null;
+  let sessionId: string | null = null;
+
+  if (opts.req) {
+    const auth = getAuth(opts.req as any);
+    userId = auth.userId;
+    sessionId = auth.sessionId;
+  }
+
   return {
     db,
     userId: userId ?? null,
@@ -38,11 +34,11 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
 
 /**
  * 2. INITIALIZATION
- *
- * This is where the tRPC API is initialized, connecting the context and transformer. We also parse
- * ZodErrors so that you get typesafety on the frontend if your procedure fails due to validation
- * errors on the backend.
  */
+import { initTRPC, TRPCError } from "@trpc/server";
+import superjson from "superjson";
+import { ZodError } from "zod";
+
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
   errorFormatter({ shape, error }) {
@@ -58,54 +54,43 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
 });
 
 /**
- * Create a server-side caller.
- *
- * @see https://trpc.io/docs/server/server-side-calls
+ * 3. ROUTER & PROCEDURE
  */
+
 export const createCallerFactory = t.createCallerFactory;
-
-/**
- * 3. ROUTER & PROCEDURE (THE IMPORTANT BIT)
- *
- * These are the pieces you use to build your tRPC API. You should import these a lot in the
- * "/src/server/api/routers" directory.
- */
-
-/**
- * This is how you create new routers and sub-routers in your tRPC API.
- *
- * @see https://trpc.io/docs/router
- */
 export const createTRPCRouter = t.router;
 
 /**
- * Middleware for timing procedure execution and adding an artificial delay in development.
- *
- * You can remove this if you don't like it, but it can help catch unwanted waterfalls by simulating
- * network latency that would occur in production but not in local development.
+ * Public procedure - Qualquer um pode chamar
  */
-const timingMiddleware = t.middleware(async ({ next, path }) => {
-  const start = Date.now();
+export const publicProcedure = t.procedure;
 
-  if (t._config.isDev) {
-    // artificial delay in dev
-    const waitMs = Math.floor(Math.random() * 400) + 100;
-    await new Promise((resolve) => setTimeout(resolve, waitMs));
+/**
+ * Protected procedure - Requer autenticação
+ */
+export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+  if (!ctx.userId) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
   }
-
-  const result = await next();
-
-  const end = Date.now();
-  console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
-
-  return result;
+  return next({
+    ctx: {
+      // Garante que userId não é null
+      userId: ctx.userId,
+    },
+  });
 });
 
 /**
- * Public (unauthenticated) procedure
- *
- * This is the base piece you use to build new queries and mutations on your tRPC API. It does not
- * guarantee that a user querying is authorized, but you can still access user session data if they
- * are logged in.
+ * Admin procedure - Requer autenticação + role admin
  */
-export const publicProcedure = t.procedure.use(timingMiddleware);
+export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  // Aqui você pode adicionar verificação de admin
+  // const user = await ctx.db.query.users.findFirst({
+  //   where: eq(users.clerkUserId, ctx.userId),
+  // });
+  // if (user?.role !== 'admin') {
+  //   throw new TRPCError({ code: "FORBIDDEN" });
+  // }
+
+  return next({ ctx });
+});
