@@ -2,20 +2,6 @@
 import { authMiddleware } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 
-const publicRoutes = [
-  "/",
-  "/servicos",
-  "/sign-in",
-  "/sign-up",
-  "/api/webhooks(.*)", // Adiciona wildcard
-  "/api/trpc(.*)", // ⚠️ MUDANÇA AQUI: adiciona (.*)
-];
-
-function isPublic(req: Request) {
-  const pathname = new URL(req.url).pathname;
-  return publicRoutes.some((route) => pathname.startsWith(route));
-}
-
 const adminRoutes = ["/admin/dashboard"];
 
 function isAdminRoute(req: Request) {
@@ -24,15 +10,24 @@ function isAdminRoute(req: Request) {
 }
 
 export default authMiddleware({
-  publicRoutes,
+  // Rotas completamente públicas
+  publicRoutes: ["/", "/servicos", "/sign-in(.*)", "/sign-up(.*)"],
+
+  // Rotas IGNORADAS pelo Clerk (importante para tRPC)
+  ignoredRoutes: ["/api/webhooks(.*)", "/api/trpc(.*)"],
 
   async afterAuth(auth, req) {
     const { userId, sessionClaims } = auth;
     const pathname = new URL(req.url).pathname;
 
-    if (isPublic(req)) return NextResponse.next();
-
-    if (!userId) {
+    // Se não estiver autenticado e não for rota pública
+    if (
+      !userId &&
+      !pathname.startsWith("/sign-in") &&
+      !pathname.startsWith("/sign-up") &&
+      pathname !== "/" &&
+      !pathname.startsWith("/servicos")
+    ) {
       return NextResponse.redirect(new URL("/sign-in", req.url));
     }
 
@@ -49,5 +44,5 @@ export default authMiddleware({
 });
 
 export const config = {
-  matcher: ["/((?!_next|.*\\..*).*)", "/(api|trpc)(.*)"],
+  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
 };
