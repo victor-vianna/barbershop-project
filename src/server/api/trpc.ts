@@ -1,27 +1,27 @@
-/**
- * 1. CONTEXT
- *
- * This section defines the "contexts" that are available in the backend API.
- */
+// src/server/api/trpc.ts
 import { getAuth } from "@clerk/nextjs/server";
 import { db } from "~/server/db";
 
-/**
- * Creates context for an incoming request
- * @link https://trpc.io/docs/context
- */
 export const createTRPCContext = async (opts: {
   headers: Headers;
   req?: Request;
 }) => {
-  // Use getAuth() que aceita request object para evitar erro de headers
   let userId: string | null = null;
   let sessionId: string | null = null;
 
   if (opts.req) {
-    const auth = getAuth(opts.req as any);
-    userId = auth.userId;
-    sessionId = auth.sessionId;
+    try {
+      const auth = getAuth(opts.req as any);
+      userId = auth.userId;
+      sessionId = auth.sessionId;
+
+      // Log apenas em desenvolvimento
+      if (process.env.NODE_ENV === "development") {
+        console.log("[tRPC Context]", { userId, sessionId });
+      }
+    } catch (error) {
+      console.error("[tRPC Context Error]", error);
+    }
   }
 
   return {
@@ -31,6 +31,8 @@ export const createTRPCContext = async (opts: {
     headers: opts.headers,
   };
 };
+
+// ... resto do código permanece igual
 
 /**
  * 2. INITIALIZATION
