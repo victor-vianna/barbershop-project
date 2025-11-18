@@ -15,7 +15,7 @@ export default authMiddleware({
 
 export const config = {
   matcher: [
+    // permitir arquivos estáticos e /api, mas rodar no resto
     "/((?!_next|.*\\..*).*)",
-    "/api/(.*)", // 🔥 agora o middleware roda também na API
   ],
 };
